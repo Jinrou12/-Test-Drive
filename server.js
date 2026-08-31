@@ -455,6 +455,113 @@ app.get('/api/scan-temp', (req, res) => {
     });
 });
 
+// ── 4B. GET /api/file-usage-analysis ──────────────────────────────────────
+app.get('/api/file-usage-analysis', (req, res) => {
+    const driveParam = req.query.drive || 'ALL';
+    const filter = req.query.filter || '1Y';
+
+    const allDriveLetters = ['C:', 'D:', 'E:', 'F:', 'G:', 'H:'];
+    const connectedDrives = allDriveLetters.filter(d => fs.existsSync(d + '\\'));
+
+    let targetDrives = connectedDrives;
+    if (driveParam !== 'ALL') {
+        targetDrives = targetDrives.filter(d => d.toUpperCase().startsWith(driveParam.toUpperCase().substring(0, 1)));
+    }
+
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    const items = [];
+
+    for (const driveLetter of targetDrives) {
+        const driveRoot = `${driveLetter}\\`;
+        if (!fs.existsSync(driveRoot)) continue;
+
+        let scanPaths = [];
+        if (driveLetter.startsWith('C')) {
+            const userHome = os.homedir();
+            scanPaths = [
+                path.join(userHome, 'Downloads'),
+                path.join(userHome, 'Documents'),
+                path.join(userHome, 'Desktop'),
+                path.join(userHome, 'Videos'),
+                path.join(userHome, 'Pictures'),
+                path.join(userHome, 'Music'),
+                'C:\\Program Files',
+                'C:\\Program Files (x86)'
+            ];
+        } else {
+            try {
+                const subDirs = fs.readdirSync(driveRoot, { withFileTypes: true });
+                scanPaths = subDirs
+                    .filter(d => d.isDirectory() && !d.name.startsWith('$') && d.name !== 'System Volume Information')
+                    .map(d => path.join(driveRoot, d.name));
+            } catch (_) {}
+        }
+
+        for (const sp of scanPaths) {
+            if (!fs.existsSync(sp)) continue;
+            try {
+                const stat = fs.statSync(sp);
+                const lastAccess = stat.atimeMs || stat.mtimeMs || stat.ctimeMs;
+                const daysInactive = Math.floor((now - lastAccess) / oneDay);
+                
+                let sizeBytes = 0;
+                let fileCount = 0;
+                if (stat.isDirectory()) {
+                    const metrics = getFolderMetrics(sp, 2);
+                    sizeBytes = metrics.totalSize;
+                    fileCount = metrics.fileCount;
+                } else {
+                    sizeBytes = stat.size;
+                    fileCount = 1;
+                }
+
+                let match = false;
+                let statusLabel = '';
+                let statusBadge = '';
+
+                if (daysInactive <= 7) {
+                    statusLabel = 'ប្រើប្រាស់រាល់ថ្ងៃ (1W)';
+                    statusBadge = 'badge-c';
+                    if (filter === '1W' || filter === 'ALL') match = true;
+                } else if (daysInactive <= 30) {
+                    statusLabel = 'មិនសូវប្រើ (1M)';
+                    statusBadge = 'badge-d';
+                    if (filter === '1M' || filter === 'ALL') match = true;
+                } else if (daysInactive <= 180) {
+                    statusLabel = 'មិនប៉ះពាល់ 6 ខែ (6M)';
+                    statusBadge = 'badge-f';
+                    if (filter === '6M' || filter === 'ALL') match = true;
+                } else {
+                    statusLabel = 'គ្មានប្រយោជន៍ (1Y+)';
+                    statusBadge = 'badge-d';
+                    if (filter === '1Y' || filter === 'ALL') match = true;
+                }
+
+                if (match) {
+                    items.push({
+                        name: path.basename(sp),
+                        path: sp,
+                        drive: driveLetter,
+                        isDirectory: stat.isDirectory(),
+                        count: fileCount,
+                        sizeBytes,
+                        sizeMB: parseFloat((sizeBytes / (1024 * 1024)).toFixed(1)),
+                        sizeGB: parseFloat((sizeBytes / (1024 ** 3)).toFixed(2)),
+                        lastAccessDate: new Date(lastAccess).toISOString().split('T')[0],
+                        daysInactive,
+                        statusLabel,
+                        statusBadge
+                    });
+                }
+            } catch (_) {}
+        }
+    }
+
+    items.sort((a, b) => b.sizeBytes - a.sizeBytes);
+    res.json({ items, filter, drive: driveParam });
+});
+
 // ── 5. POST /api/clean-temp ──────────────────────────────────────────────
 app.post('/api/clean-temp', (req, res) => {
     const userTemp = os.tmpdir();

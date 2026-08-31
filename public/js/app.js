@@ -331,40 +331,144 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // 4. Load Folders from Selected Source Drive (With Multi-Select)
-    async function loadUserFolders() {
-        const sourceDrive = userFoldersSourceDrive ? userFoldersSourceDrive.value : 'C:';
-        userFoldersTbody.innerHTML = `<tr><td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន Folders ក្នុង Drive ${sourceDrive}...</td></tr>`;
+    // 4. File & App Usage Analyzer Logic
+    let currentUsageFilter = '1Y';
+    let currentUsageDrive = 'ALL';
+    const usageFilterBtns = document.querySelectorAll('.usage-filter-btn');
+    const usageDriveFilter = document.getElementById('usage-drive-filter');
+    const usageBatchTarget = document.getElementById('usage-batch-target');
+    const btnBatchMoveUsage = document.getElementById('btn-batch-move-usage');
+    const usageSelectAll = document.getElementById('usage-select-all');
+    const usageTbody = document.getElementById('usage-tbody');
 
-        if (sourceDrive === 'C:') {
-            try {
-                const res = await fetch('/api/user-folders');
-                const data = await res.json();
-                if (data.folders) {
-                    renderUserFolders(data.folders);
-                }
-            } catch (err) {
-                userFoldersTbody.innerHTML = `<tr><td colspan="7" class="text-center">មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Folders</td></tr>`;
+    if (usageFilterBtns) {
+        usageFilterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                usageFilterBtns.forEach(b => {
+                    b.classList.remove('active', 'btn-emerald');
+                    b.classList.add('btn-secondary');
+                });
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('active', 'btn-emerald');
+                currentUsageFilter = btn.getAttribute('data-filter');
+                loadUsageAnalysis();
+            });
+        });
+    }
+
+    if (usageDriveFilter) {
+        usageDriveFilter.addEventListener('change', () => {
+            currentUsageDrive = usageDriveFilter.value;
+            loadUsageAnalysis();
+        });
+    }
+
+    async function loadUsageAnalysis() {
+        if (!usageTbody) return;
+        usageTbody.innerHTML = `<tr><td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន & វិភាគឯកសារ/Apps តាមរយៈពេល (${currentUsageFilter})...</td></tr>`;
+
+        try {
+            const res = await fetch(`/api/file-usage-analysis?filter=${currentUsageFilter}&drive=${currentUsageDrive}`);
+            const data = await res.json();
+            if (data.items) {
+                renderUsageAnalysis(data.items);
             }
-        } else {
-            try {
-                const res = await fetch(`/api/drive-details?drive=${sourceDrive}`);
-                const data = await res.json();
-                if (data.topFolders) {
-                    const formatted = data.topFolders.map(tf => ({
-                        folder: tf.name,
-                        path: tf.path,
-                        count: tf.count || 1,
-                        sizeBytes: tf.sizeBytes || 0,
-                        sizeMB: tf.sizeMB || 0,
-                        sizeGB: tf.sizeGB || 0
-                    }));
-                    renderUserFolders(formatted);
-                }
-            } catch (err) {
-                userFoldersTbody.innerHTML = `<tr><td colspan="7" class="text-center">មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Folders ពី Drive ${sourceDrive}</td></tr>`;
-            }
+        } catch (e) {
+            usageTbody.innerHTML = `<tr><td colspan="7" class="text-center text-rose-500">❌ មានបញ្ហាក្នុងការស្កែនវិភាគឯកសារ</td></tr>`;
         }
+    }
+
+    function renderUsageAnalysis(items) {
+        if (!usageTbody) return;
+        if (items.length === 0) {
+            usageTbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-sub">គ្មានឯកសារដែលត្រូវនឹងតម្រង ${currentUsageFilter} ឡើយ</td></tr>`;
+            return;
+        }
+
+        const availableTargetDrives = drivesData.filter(d => !d.drive.startsWith('C')).map(d => d.drive);
+        
+        usageTbody.innerHTML = items.map(item => {
+            const defaultTarget = availableTargetDrives.find(d => d.startsWith('F')) || availableTargetDrives[0] || 'F:';
+            const optionsHtml = availableTargetDrives.map(drive => 
+                `<option value="${drive}" ${drive === defaultTarget ? 'selected' : ''}>${drive}</option>`
+            ).join('');
+
+            return `
+                <tr>
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="usage-item-cb" data-path="${item.path}" data-name="${item.name}" style="width:16px; height:16px; cursor:pointer;">
+                    </td>
+                    <td><strong><i class="${item.isDirectory ? 'fa-solid fa-folder color-cyan' : 'fa-solid fa-file color-blue'}"></i> ${item.name}</strong></td>
+                    <td class="text-sub" style="font-size:12px;">${item.path}</td>
+                    <td><strong class="color-cyan">${item.sizeGB > 1 ? item.sizeGB + ' GB' : item.sizeMB + ' MB'}</strong></td>
+                    <td style="font-size:12px; color:var(--text-sub);">${item.lastAccessDate} (${item.daysInactive} ថ្ងៃមុន)</td>
+                    <td><span class="badge-drive ${item.statusBadge}" style="font-size:11px;">${item.statusLabel}</span></td>
+                    <td style="text-align: center;">
+                        <div style="display:flex; gap:6px; justify-content:center;">
+                            <select class="drive-select" id="target-${item.name.replace(/[^a-zA-Z0-9]/g, '')}" style="padding:3px 6px; font-size:12px;">
+                                ${optionsHtml}
+                            </select>
+                            <button class="btn btn-cyan btn-move-usage-item" data-path="${item.path}" data-name="${item.name}" style="padding:4px 10px; font-size:11px;">
+                                <i class="fa-solid fa-right-long"></i> ផ្ទេរ
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        document.querySelectorAll('.btn-move-usage-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const itemPath = btn.getAttribute('data-path');
+                const itemName = btn.getAttribute('data-name');
+                const selectId = `target-${itemName.replace(/[^a-zA-Z0-9]/g, '')}`;
+                const targetSelect = document.getElementById(selectId);
+                const targetDrive = targetSelect ? targetSelect.value : 'F:';
+                
+                showConfirmModal(
+                    `ផ្ទេរឯកសារ/Folder ${itemName}`,
+                    `តើអ្នកពិតជាចង់ផ្ទេរ ${itemName} ទៅកាន់ Drive ${targetDrive} មែនទេ?`,
+                    () => executeSingleMove(itemPath, itemName, targetDrive)
+                );
+            });
+        });
+
+        const usageCbs = document.querySelectorAll('.usage-item-cb');
+        usageCbs.forEach(cb => cb.addEventListener('change', updateBatchUsageState));
+        if (usageSelectAll) {
+            usageSelectAll.checked = false;
+            usageSelectAll.onclick = (e) => {
+                usageCbs.forEach(cb => cb.checked = e.target.checked);
+                updateBatchUsageState();
+            };
+        }
+        updateBatchUsageState();
+    }
+
+    function updateBatchUsageState() {
+        if (!btnBatchMoveUsage) return;
+        const checked = document.querySelectorAll('.usage-item-cb:checked');
+        btnBatchMoveUsage.disabled = checked.length === 0;
+        btnBatchMoveUsage.innerHTML = `<i class="fa-solid fa-truck-ramp-box"></i> ផ្ទេរដែលបានជ្រើស (${checked.length})`;
+    }
+
+    if (btnBatchMoveUsage) {
+        btnBatchMoveUsage.addEventListener('click', () => {
+            const checked = document.querySelectorAll('.usage-item-cb:checked');
+            if (checked.length === 0) return;
+
+            const targetDrive = usageBatchTarget ? usageBatchTarget.value : 'F:';
+            const itemsToMove = Array.from(checked).map(cb => ({
+                sourcePath: cb.getAttribute('data-path'),
+                folderName: cb.getAttribute('data-name')
+            }));
+
+            showConfirmModal(
+                `ផ្ទេរ ${itemsToMove.length} Items ទៅកាន់ Drive ${targetDrive}`,
+                `តើអ្នកពិតជាចង់ផ្ទេរ ${itemsToMove.length} Items ដែលបានជ្រើសរើសទៅកាន់ Drive ${targetDrive} មែនទេ?`,
+                () => executeBatchMove(itemsToMove, targetDrive)
+            );
+        });
     }
 
     function renderUserFolders(folders) {
@@ -1414,9 +1518,8 @@ document.addEventListener('DOMContentLoaded', () => {
     procSearchInput.addEventListener('input', () => renderProcesses(processesData));
 
     refreshAllBtn.addEventListener('click', async () => {
-        // FIX: await drives first — drivesData must be populated before folder dropdowns render
         await loadDrives();
-        await loadUserFolders();
+        await loadUsageAnalysis();
         scanTemp();
         if (currentTab === 'processes-tab') {
             loadProcesses();
@@ -1427,10 +1530,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Non-blocking Parallel Initial Load (Instant UI rendering)
     function init() {
-        // Load drives immediately; load folders once drivesData is ready
         loadDrives().then(() => {
-            loadUserFolders();
             loadSelectedSourceDrives();
+            loadUsageAnalysis();
         });
         scanTemp();
     }

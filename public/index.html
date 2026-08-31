@@ -90,55 +90,7 @@
                     </div>
                 </div>
 
-                <!-- User Folders Migration Table -->
-                <div class="card table-card">
-                    <div class="card-header flex-header">
-                        <div>
-                            <h3><i class="fa-solid fa-folder-tree"></i> ផ្ទេរ Folder ធំៗពី Drive</h3>
-                            <p>ជ្រើសរើស Drive ប្រភព និង Drive គោលដៅ ដើម្បីផ្ទេរ Folder ធំៗ</p>
-                        </div>
-                        <div class="batch-actions-group" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <label style="font-size: 13px; color: var(--accent-cyan); font-weight: 700;">Drive ប្រភព (Source):</label>
-                            <select id="user-folders-source-drive" class="drive-select" style="padding: 6px 12px; font-weight: 600;">
-                                <option value="C:">Drive C:</option>
-                            </select>
-
-                            <label style="font-size: 13px; color: var(--accent-emerald); font-weight: 700;">Drive គោលដៅ (Target):</label>
-                            <select id="user-folders-batch-target" class="drive-select" style="padding: 6px 12px; font-weight: 600;">
-                                <option value="F:">Drive F:</option>
-                                <option value="D:">Drive D:</option>
-                            </select>
-
-                            <button id="btn-batch-move-user-folders" class="btn btn-cyan" disabled style="padding: 8px 16px;">
-                                <i class="fa-solid fa-truck-ramp-box"></i> ផ្ទេរ Folders ដែលបានជ្រើស (0)
-                            </button>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 40px; text-align: center;">
-                                        <input type="checkbox" id="user-folder-select-all" style="width:16px; height:16px; cursor:pointer;" title="ជ្រើសរើសទាំងអស់">
-                                    </th>
-                                    <th>ឈ្មោះ Folder</th>
-                                    <th>ទីតាំងដើម (Source Drive)</th>
-                                    <th>ចំនួនឯកសារ</th>
-                                    <th>ទំហំសរុប</th>
-                                    <th>ជ្រើសរើស Drive គោលដៅ</th>
-                                    <th>សកម្មភាព</th>
-                                </tr>
-                            </thead>
-                            <tbody id="user-folders-tbody">
-                                <tr>
-                                    <td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែនទំហំ Folders...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Universal Multi-Drive Transfer Panel -->
+                <!-- Universal Multi-Drive Transfer Panel (MOVED TO TOP) -->
                 <div class="card universal-transfer-card" style="border: 1px solid rgba(6, 182, 212, 0.3); background: rgba(11, 15, 25, 0.85);">
                     <div class="card-header flex-header">
                         <div>
@@ -239,6 +191,85 @@
                                 <i class="fa-solid fa-paper-plane"></i> ផ្ទេរ Items ទាំងអស់ក្នុង Queue ទៅកាន់ Target Drive
                             </button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- App & File Usage & Inactivity Analyzer Card (MOVED TO BOTTOM) -->
+                <div class="card table-card" id="usage-analyzer-card" style="border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(11, 15, 25, 0.85); margin-top: 20px;">
+                    <div class="card-header flex-header">
+                        <div>
+                            <h3 style="color: var(--accent-emerald); display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-chart-pie"></i> វិភាគ & ស្កែនឯកសារ / Apps តាមរយៈពេលមិនដែលប្រើ (Inactivity Filter)
+                            </h3>
+                            <p>ស្កែនរកឯកសារ និង Apps ក្នុង Drive ទាំង ៣ ដែលមិនដែលប្រើ មិនដែលប៉ះពាល់យូរមកហើយ ដើម្បីផ្ទេរ ឬ លុបសម្អាត</p>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls Bar -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin: 12px 0; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px;">
+                        <!-- Filter Buttons: 1W, 1M, 6M, 1Y -->
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;" id="usage-filter-group">
+                            <span style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-right: 4px;">
+                                <i class="fa-solid fa-filter"></i> តម្រង (Filter Duration):
+                            </span>
+                            <button class="btn btn-secondary usage-filter-btn" data-filter="1W" style="padding: 5px 12px; font-size: 12px;">
+                                🟢 1 សប្ដាហ៍ (1 Week)
+                            </button>
+                            <button class="btn btn-secondary usage-filter-btn" data-filter="1M" style="padding: 5px 12px; font-size: 12px;">
+                                🟡 1 ខែ (1 Month)
+                            </button>
+                            <button class="btn btn-secondary usage-filter-btn" data-filter="6M" style="padding: 5px 12px; font-size: 12px;">
+                                🟠 6 ខែ (6 Months)
+                            </button>
+                            <button class="btn btn-emerald usage-filter-btn active" data-filter="1Y" style="padding: 5px 14px; font-size: 12px; font-weight: 700;">
+                                🔴 1 ឆ្នាំ+ (1 Year+ Unused)
+                            </button>
+                        </div>
+
+                        <!-- Drive Filter & Batch Actions -->
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <label style="font-size: 12px; color: var(--accent-cyan); font-weight: 700;">Drive:</label>
+                            <select id="usage-drive-filter" class="drive-select" style="padding: 5px 10px; font-size: 12px; font-weight: 600;">
+                                <option value="ALL">Drive ទាំងអស់ (All Drives)</option>
+                                <option value="C:">Drive C:</option>
+                                <option value="D:">Drive D:</option>
+                                <option value="F:">Drive F:</option>
+                            </select>
+
+                            <label style="font-size: 12px; color: var(--accent-emerald); font-weight: 700;">Target:</label>
+                            <select id="usage-batch-target" class="drive-select" style="padding: 5px 10px; font-size: 12px; font-weight: 600;">
+                                <option value="F:">Drive F:</option>
+                                <option value="D:">Drive D:</option>
+                            </select>
+
+                            <button id="btn-batch-move-usage" class="btn btn-cyan" disabled style="padding: 6px 14px; font-size: 12px;">
+                                <i class="fa-solid fa-truck-ramp-box"></i> ផ្ទេរដែលបានជ្រើស (0)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Usage Items Table -->
+                    <div class="table-responsive">
+                        <table class="data-table" style="font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px; text-align: center;">
+                                        <input type="checkbox" id="usage-select-all" style="width:16px; height:16px; cursor:pointer;" title="ជ្រើសរើសទាំងអស់">
+                                    </th>
+                                    <th>ឈ្មោះ File / App Folder</th>
+                                    <th>ទីតាំងដើម (Source Drive)</th>
+                                    <th>ទំហំសរុប</th>
+                                    <th>កាលបរិច្ឆេទប្រើចុងក្រោយ</th>
+                                    <th>ស្ថានភាព (Usage Status)</th>
+                                    <th style="text-align: center;">សកម្មភាព (Actions)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usage-tbody">
+                                <tr>
+                                    <td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន និង វិភាគឯកសារ...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
