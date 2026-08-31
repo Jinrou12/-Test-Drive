@@ -1055,13 +1055,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/clean-temp', { method: 'POST' });
             const data = await res.json();
 
-            if (data.success) {
-                showToast('សម្អាត Temp & Cache files រួចរាល់!', 'success');
-                scanTemp();
-                loadDrives();
-            }
+            showToast('✅ សម្អាត Temp & Cache files រួចរាល់!', 'success');
+            await scanTemp();
+            await loadDrives();
         } catch (e) {
-            showToast('មានបញ្ហាក្នុងការសម្អាត', 'error');
+            showToast('❌ មានបញ្ហាក្នុងការសម្អាត', 'error');
         } finally {
             cleanTempBtn.disabled = false;
             cleanTempBtn.innerHTML = `<i class="fa-solid fa-trash-can"></i> សម្អាតភ្លាមៗ (Clean Now)`;

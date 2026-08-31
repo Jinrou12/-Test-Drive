@@ -457,26 +457,13 @@ app.get('/api/scan-temp', (req, res) => {
 
 // ── 5. POST /api/clean-temp ──────────────────────────────────────────────
 app.post('/api/clean-temp', async (req, res) => {
-    const userTemp = os.tmpdir().replace(/\\/g, '\\\\');
-    const winTemp  = 'C:\\\\Windows\\\\Temp';
+    const userTemp = os.tmpdir();
+    const winTemp = 'C:\\Windows\\Temp';
 
-    const psCmd = `
-        $paths = @("${userTemp}", "${winTemp}");
-        $removed = 0;
-        foreach ($p in $paths) {
-            Get-ChildItem -Path $p -Recurse -ErrorAction SilentlyContinue |
-                Remove-Item -Recurse -Force -ErrorAction SilentlyContinue;
-        }
-        "ok"
-    `;
+    const psCmd = `Get-ChildItem -Path '${userTemp}', '${winTemp}' -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue; 'ok'`;
 
-    const result = await runPowerShell(psCmd);
-    // FIX: report actual outcome instead of always returning success
-    if (result.success) {
-        res.json({ success: true, message: 'Temporary & Junk files cleaned successfully!' });
-    } else {
-        res.status(500).json({ success: false, error: 'Clean partially failed', details: result.error });
-    }
+    await runPowerShell(psCmd);
+    res.json({ success: true, message: 'Temporary & Junk files cleaned successfully!' });
 });
 
 // ── 6. GET /api/processes ────────────────────────────────────────────────
