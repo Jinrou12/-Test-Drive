@@ -92,14 +92,29 @@
 
                 <!-- User Folders Migration Table -->
                 <div class="card table-card">
-                    <div class="card-header">
-                        <h3><i class="fa-solid fa-folder-tree"></i> ផ្ទេរ Folder ធំៗពី Drive C ទៅកាន់ Drive ផ្សេងទៀត</h3>
-                        <p>ជ្រើសរើស Folder ដែលស៊ីទំហំធំដើម្បីផ្ទេរទៅ Drive F (204 GB ទំនេរ) ឬ Drive D</p>
+                    <div class="card-header flex-header">
+                        <div>
+                            <h3><i class="fa-solid fa-folder-tree"></i> ផ្ទេរ Folder ធំៗពី Drive C (Multi-Select Supported)</h3>
+                            <p>ជ្រើសរើស Folder ដែលស៊ីទំហំធំដើម្បីផ្ទេរទៅ Drive F (204 GB ទំនេរ) ឬ Drive D</p>
+                        </div>
+                        <div class="batch-actions-group" style="display: flex; gap: 10px; align-items: center;">
+                            <label style="font-size: 13px; color: var(--text-muted);">ផ្ទេរទៅ៖</label>
+                            <select id="user-folders-batch-target" class="drive-select" style="padding: 6px 12px; font-weight: 600;">
+                                <option value="F:">Drive F:</option>
+                                <option value="D:">Drive D:</option>
+                            </select>
+                            <button id="btn-batch-move-user-folders" class="btn btn-cyan" disabled style="padding: 8px 16px;">
+                                <i class="fa-solid fa-truck-ramp-box"></i> ផ្ទេរ Folders ដែលបានជ្រើស (0)
+                            </button>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>
                                 <tr>
+                                    <th style="width: 40px; text-align: center;">
+                                        <input type="checkbox" id="user-folder-select-all" style="width:16px; height:16px; cursor:pointer;" title="ជ្រើសរើសទាំងអស់">
+                                    </th>
                                     <th>ឈ្មោះ Folder</th>
                                     <th>ទីតាំងដើម (Drive C)</th>
                                     <th>ចំនួនឯកសារ</th>
@@ -110,10 +125,75 @@
                             </thead>
                             <tbody id="user-folders-tbody">
                                 <tr>
-                                    <td colspan="6" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែនទំហំ Folders...</td>
+                                    <td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែនទំហំ Folders...</td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- Universal Multi-Drive Transfer Panel -->
+                <div class="card universal-transfer-card" style="border: 1px solid rgba(6, 182, 212, 0.3); background: rgba(11, 15, 25, 0.85);">
+                    <div class="card-header flex-header">
+                        <div>
+                            <h3 style="color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-right-left"></i> ផ្ទេរឯកសារ Universal (ពី Drive មួយទៅ Drive មួយទៀត)
+                            </h3>
+                            <p>ជ្រើសរើស Source Drive ណាក៏បាន (C:, D:, F:...) រួច Select គ្រីសលើ Folders/Files មួយឬច្រើនដើម្បីផ្ទេរចូល Target Drive</p>
+                        </div>
+                    </div>
+
+                    <div class="universal-transfer-controls" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0;">
+                        <!-- Source Drive Selector -->
+                        <div class="control-box" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px;">
+                            <label style="font-weight: 700; color: var(--accent-cyan); font-size: 14px; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                                <i class="fa-solid fa-hard-drive"></i> 1. ជ្រើសរើស Source Drive (ប្រភព)
+                            </label>
+                            <select id="univ-source-drive" class="drive-select" style="width: 100%; padding: 10px; font-size: 14px; font-weight: 600;">
+                                <option value="C:">Drive C: (Local Disk)</option>
+                                <option value="D:">Drive D: (Local Disk)</option>
+                                <option value="F:">Drive F: (Local Disk)</option>
+                            </select>
+                        </div>
+
+                        <!-- Target Drive Selector -->
+                        <div class="control-box" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px;">
+                            <label style="font-weight: 700; color: var(--accent-emerald); font-size: 14px; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                                <i class="fa-solid fa-box-archive"></i> 2. ជ្រើសរើស Target Drive (គោលដៅ)
+                            </label>
+                            <select id="univ-target-drive" class="drive-select" style="width: 100%; padding: 10px; font-size: 14px; font-weight: 600;">
+                                <option value="F:">Drive F: (ទំនេរ 183 GB)</option>
+                                <option value="D:">Drive D: (ទំនេរ 30 GB)</option>
+                                <option value="C:">Drive C: (Local Disk)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Folder List of Selected Source Drive -->
+                    <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span style="font-weight: 700; font-size: 14px; color: var(--text-main);">
+                                <i class="fa-solid fa-folder-open color-cyan"></i> បញ្ជី Folders ក្នុង <span id="univ-source-name" style="color: var(--accent-cyan);">Drive C:</span>
+                            </span>
+                            <div style="display: flex; gap: 8px;">
+                                <button id="btn-univ-select-all" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Select All</button>
+                                <button id="btn-univ-clear-all" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Clear Selection</button>
+                            </div>
+                        </div>
+
+                        <div id="univ-folder-list" style="max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                            <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន Folders...</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 13px; color: var(--text-muted);">
+                            បានជ្រើសរើស៖ <strong id="univ-selected-count" style="color: var(--accent-cyan);">0</strong> items 
+                            (<strong id="univ-selected-size" style="color: var(--accent-emerald);">0.0 MB</strong>)
+                        </div>
+                        <button id="btn-univ-transfer" class="btn btn-emerald" disabled style="padding: 10px 24px; font-size: 15px; font-weight: 700;">
+                            <i class="fa-solid fa-paper-plane"></i> ផ្ទេរ Items ដែលបានជ្រើសរើសទៅកាន់ Target Drive
+                        </button>
                     </div>
                 </div>
             </section>
@@ -301,6 +381,64 @@
             <button id="cancel-transfer-btn" class="btn btn-rose" style="width: 100%; margin-top: 4px; font-weight: 700;">
                 <i class="fa-solid fa-xmark"></i> បោះបង់ការផ្ទេរ (Cancel Transfer)
             </button>
+        </div>
+    </div>
+
+    <!-- DRIVE DETAILS MODAL -->
+    <div id="drive-details-modal" class="modal-overlay hidden">
+        <div class="modal-card" style="max-width: 680px; width: 90%; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; background: rgba(6, 182, 212, 0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--accent-cyan);">
+                        <i class="fa-solid fa-hard-drive"></i>
+                    </div>
+                    <div>
+                        <h3 id="drive-details-title" style="margin: 0; font-size: 18px;">ព័ត៌មានលម្អិត Drive C:</h3>
+                        <span id="drive-details-sub" style="font-size: 13px; color: var(--text-muted);">Volume Name: Local Disk | File System: NTFS</span>
+                    </div>
+                </div>
+                <button id="drive-details-close-btn" class="btn btn-secondary" style="padding: 6px 12px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">ទំហំសរុប (Total):</span>
+                    <h4 id="detail-total-size" style="font-size: 16px; color: var(--text-main); margin-top: 2px;">0.0 GB</h4>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">ទំហំបានប្រើ (Used):</span>
+                    <h4 id="detail-used-size" style="font-size: 16px; color: var(--accent-amber); margin-top: 2px;">0.0 GB</h4>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">ទំហំនៅទំនេរ (Free):</span>
+                    <h4 id="detail-free-size" style="font-size: 16px; color: var(--accent-emerald); margin-top: 2px;">0.0 GB</h4>
+                </div>
+            </div>
+
+            <!-- Usage Bar -->
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                    <span style="color: var(--text-muted);">ភាគរយប្រើប្រាស់៖</span>
+                    <span id="detail-percent-text" style="font-weight: 700; color: var(--accent-cyan);">0%</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.1); border-radius: 6px; height: 10px; overflow: hidden;">
+                    <div id="detail-progress-bar" style="background: linear-gradient(90deg, #06b6d4, #8b5cf6); height: 100%; width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Top Folders Breakdown -->
+            <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--accent-cyan); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-folder-tree"></i> បញ្ជី Folders ធំៗក្នុង Drive នេះ (Top Folders & Files)
+            </h4>
+            <div id="drive-details-folders-list" style="max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
+                <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយកព័ត៌មាន Folders...</div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="btn-detail-set-source" class="btn btn-cyan"><i class="fa-solid fa-arrow-up-from-bracket"></i> ជ្រើសរើសដើម្បីផ្ទេរចេញ (Set Source)</button>
+                <button id="btn-detail-set-target" class="btn btn-emerald"><i class="fa-solid fa-arrow-down-to-bracket"></i> ជ្រើសរើសជា Target (Set Target)</button>
+            </div>
         </div>
     </div>
 

@@ -70,7 +70,7 @@ function getFolderMetrics(dirPath, maxDepth = 4, currentDepth = 0) {
 
 // ── 1. GET /api/drives ────────────────────────────────────────────────────
 app.get('/api/drives', async (req, res) => {
-    const psCmd = `Get-CimInstance Win32_LogicalDisk | Where-Object DriveType -eq 3 | Select-Object DeviceID, VolumeName, Size, FreeSpace | ConvertTo-Json`;
+    const psCmd = `Get-CimInstance Win32_LogicalDisk | Where-Object DriveType -eq 3 | Select-Object DeviceID, VolumeName, FileSystem, DriveType, Size, FreeSpace | ConvertTo-Json`;
     const result = await runPowerShell(psCmd);
 
     if (!result.success) {
@@ -82,7 +82,6 @@ app.get('/api/drives', async (req, res) => {
         if (!Array.isArray(drives)) drives = [drives];
 
         const formatted = drives.map(d => {
-            // FIX: keep as numbers throughout — avoid string subtraction bug
             const sizeBytes = d.Size || 0;
             const freeBytes = d.FreeSpace || 0;
             const usedBytes = sizeBytes - freeBytes;
@@ -92,7 +91,15 @@ app.get('/api/drives', async (req, res) => {
             const usedGB  = parseFloat((usedBytes  / (1024 ** 3)).toFixed(1));
             const usedPercent = sizeGB > 0 ? Math.min(100, Math.round((usedGB / sizeGB) * 100)) : 0;
 
-            return { drive: d.DeviceID, name: d.VolumeName || 'Local Disk', sizeGB, freeGB, usedGB, usedPercent };
+            return { 
+                drive: d.DeviceID, 
+                name: d.VolumeName || 'Local Disk', 
+                fileSystem: d.FileSystem || 'NTFS',
+                sizeGB, 
+                freeGB, 
+                usedGB, 
+                usedPercent 
+            };
         });
 
         res.json({ drives: formatted });
@@ -123,8 +130,117 @@ app.get('/api/user-folders', async (req, res) => {
     res.json({ userHome, folders });
 });
 
+// ── 2B. GET /api/drive-details ───────────────────────────────────────────
+app.get('/api/drive-details', async (req, res) => {
+    const driveLetter = (req.query.drive || 'C:').toUpperCase().replace('\\', '');
+    const driveRoot = `${driveLetter}\\`;
+
+    if (!fs.existsSync(driveRoot)) {
+        return res.status(404).json({ error: `Drive ${driveLetter} is not accessible` });
+    }
+
+    try {
+        const items = fs.readdirSync(driveRoot, { withFileTypes: true });
+        const folderList = [];
+
+        for (const item of items) {
+            if (item.name.startsWith('$') || item.name.startsWith('.') || 
+                item.name === 'System Volume Information' || item.name === 'Windows' ||
+                item.name === 'Program Files' || item.name === 'Program Files (x86)') {
+                continue;
+            }
+
+            const fullPath = path.join(driveRoot, item.name);
+            try {
+                if (item.isDirectory()) {
+                    const metrics = getFolderMetrics(fullPath, 2);
+                    folderList.push({
+                        name: item.name,
+                        path: fullPath,
+                        isDirectory: true,
+                        count: metrics.fileCount,
+                        sizeBytes: metrics.totalSize,
+                        sizeMB: parseFloat((metrics.totalSize / (1024 * 1024)).toFixed(1)),
+                        sizeGB: parseFloat((metrics.totalSize / (1024 ** 3)).toFixed(2))
+                    });
+                } else if (item.isFile()) {
+                    const stats = fs.statSync(fullPath);
+                    folderList.push({
+                        name: item.name,
+                        path: fullPath,
+                        isDirectory: false,
+                        count: 1,
+                        sizeBytes: stats.size,
+                        sizeMB: parseFloat((stats.size / (1024 * 1024)).toFixed(1)),
+                        sizeGB: parseFloat((stats.size / (1024 ** 3)).toFixed(2))
+                    });
+                }
+            } catch (_) {}
+        }
+
+        // Sort by size descending
+        folderList.sort((a, b) => b.sizeBytes - a.sizeBytes);
+
+        res.json({
+            drive: driveLetter,
+            path: driveRoot,
+            topFolders: folderList
+        });
+    } catch (e) {
+        res.status(500).json({ error: `Failed to read drive ${driveLetter}`, details: e.message });
+    }
+});
+
+// ── 2C. GET /api/browse-drive ───────────────────────────────────────────
+app.get('/api/browse-drive', (req, res) => {
+    let targetPath = req.query.path || 'C:\\';
+    if (!targetPath.endsWith('\\') && targetPath.length === 2) {
+        targetPath += '\\';
+    }
+
+    if (!fs.existsSync(targetPath)) {
+        return res.status(404).json({ error: `Path does not exist: ${targetPath}` });
+    }
+
+    try {
+        const parentPath = path.dirname(targetPath);
+        const entries = fs.readdirSync(targetPath, { withFileTypes: true });
+        const items = [];
+
+        for (const entry of entries) {
+            if (entry.name.startsWith('$') || entry.name === 'System Volume Information') continue;
+            const fullPath = path.join(targetPath, entry.name);
+            let sizeBytes = 0;
+            if (entry.isFile()) {
+                try { sizeBytes = fs.statSync(fullPath).size; } catch (_) {}
+            }
+            items.push({
+                name: entry.name,
+                path: fullPath,
+                isDirectory: entry.isDirectory(),
+                sizeBytes,
+                sizeMB: parseFloat((sizeBytes / (1024 * 1024)).toFixed(1)),
+                sizeGB: parseFloat((sizeBytes / (1024 ** 3)).toFixed(2))
+            });
+        }
+
+        items.sort((a, b) => (b.isDirectory ? 1 : 0) - (a.isDirectory ? 1 : 0) || a.name.localeCompare(b.name));
+
+        res.json({
+            currentPath: targetPath,
+            parentPath: parentPath !== targetPath ? parentPath : null,
+            items
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 let activeMoveProcess = null;
 let moveProgressPercent = 0;
+let moveCurrentItemName = '';
+let moveBatchIndex = 0;
+let moveBatchTotal = 0;
 
 // ── 3. POST /api/move-folder ─────────────────────────────────────────────
 app.post('/api/move-folder', (req, res) => {
@@ -152,6 +268,10 @@ app.post('/api/move-folder', (req, res) => {
     }
 
     moveProgressPercent = 0;
+    moveCurrentItemName = folderName || path.basename(sourcePath);
+    moveBatchIndex = 1;
+    moveBatchTotal = 1;
+
     const args = [sourcePath, destinationDir, '/E', '/MOVE', '/BYTES', '/R:2', '/W:1'];
     let stdoutData = '';
     let stderrData = '';
@@ -184,7 +304,6 @@ app.post('/api/move-folder', (req, res) => {
             return res.json({ success: false, cancelled: true, message: 'Transfer cancelled by user' });
         }
 
-        // Robocopy exit codes 0-7 = success/partial success
         const isSuccess = typeof code === 'number' && code <= 7;
         if (isSuccess) {
             moveProgressPercent = 100;
@@ -195,11 +314,102 @@ app.post('/api/move-folder', (req, res) => {
     });
 });
 
+// ── 3A2. POST /api/move-multiple ──────────────────────────────────────────
+app.post('/api/move-multiple', async (req, res) => {
+    const { items, targetDrive } = req.body; // items: [{ sourcePath, folderName }]
+
+    if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Array of items required' });
+    }
+    if (!targetDrive) {
+        return res.status(400).json({ error: 'Target drive is required (e.g. D: or F:)' });
+    }
+
+    const { spawn } = require('child_process');
+    let successCount = 0;
+    let failCount = 0;
+    const errors = [];
+
+    moveBatchTotal = items.length;
+
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const itemSource = item.sourcePath || (item.folderName ? path.join(os.homedir(), item.folderName) : '');
+        const itemName = item.folderName || path.basename(itemSource);
+        const destinationDir = path.join(`${targetDrive}\\`, 'Migrated_Files', itemName);
+
+        if (!itemSource || !fs.existsSync(itemSource)) {
+            failCount++;
+            errors.push(`Source does not exist: ${itemSource}`);
+            continue;
+        }
+
+        moveBatchIndex = i + 1;
+        moveCurrentItemName = itemName;
+        moveProgressPercent = Math.round((i / items.length) * 100);
+
+        const args = [itemSource, destinationDir, '/E', '/MOVE', '/BYTES', '/R:2', '/W:1'];
+
+        const runRobocopy = () => new Promise((resolve) => {
+            activeMoveProcess = spawn('robocopy', args);
+
+            activeMoveProcess.stdout.on('data', (data) => {
+                const text = data.toString();
+                const matches = text.match(/(\d{1,3}(\.\d+)?)%/g);
+                if (matches && matches.length > 0) {
+                    const lastMatch = matches[matches.length - 1];
+                    const num = parseFloat(lastMatch.replace('%', ''));
+                    if (!isNaN(num) && num >= 0 && num <= 100) {
+                        const itemContribution = (num / 100) * (100 / items.length);
+                        const overall = Math.round((i / items.length) * 100 + itemContribution);
+                        moveProgressPercent = Math.min(99, overall);
+                    }
+                }
+            });
+
+            activeMoveProcess.on('close', (code) => {
+                const wasKilled = activeMoveProcess && activeMoveProcess.killed;
+                activeMoveProcess = null;
+                if (wasKilled) {
+                    resolve({ cancelled: true });
+                } else if (typeof code === 'number' && code <= 7) {
+                    resolve({ success: true });
+                } else {
+                    resolve({ success: false, code });
+                }
+            });
+        });
+
+        const result = await runRobocopy();
+        if (result.cancelled) {
+            return res.json({ success: false, cancelled: true, message: 'Batch transfer cancelled by user', successCount, failCount });
+        }
+        if (result.success) {
+            successCount++;
+        } else {
+            failCount++;
+            errors.push(`Failed moving ${itemName} (exit code ${result.code})`);
+        }
+    }
+
+    moveProgressPercent = 100;
+    res.json({
+        success: failCount === 0,
+        message: `Migrated ${successCount}/${items.length} items to ${targetDrive}\\Migrated_Files`,
+        successCount,
+        failCount,
+        errors
+    });
+});
+
 // ── 3B. GET /api/move-progress ───────────────────────────────────────────
 app.get('/api/move-progress', (req, res) => {
     res.json({
         active: activeMoveProcess !== null,
-        percent: moveProgressPercent
+        percent: moveProgressPercent,
+        currentItem: moveCurrentItemName,
+        batchIndex: moveBatchIndex,
+        batchTotal: moveBatchTotal
     });
 });
 

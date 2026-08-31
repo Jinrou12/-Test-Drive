@@ -3,11 +3,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let drivesData = [];
     let processesData = [];
     let pendingTransfer = null; // { folderName, targetDrive }
+    let pendingBatchTransfer = null; // { items: [{ sourcePath, folderName }], targetDrive }
     let pendingEndTask = null;  // { pid, name }
     let pendingEndAll = null;   // { filter, items: [{ pid, name, ramMB }] }
     let transferTimerInterval = null;
     let transferProgressPollInterval = null;
     let currentTab = 'drives-tab';
+
+    // Universal Transfer State
+    let univSourceItems = [];
+    let currentUnivDrive = 'C:';
 
     // DOM Elements
     const navButtons = document.querySelectorAll('.nav-btn');
@@ -17,16 +22,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const tempBadge = document.getElementById('temp-badge');
     const cleanTempBtn = document.getElementById('clean-temp-btn');
     
-    // Boost Buttons
+    // Drive Details Modal Elements
+    const driveDetailsModal = document.getElementById('drive-details-modal');
+    const driveDetailsTitle = document.getElementById('drive-details-title');
+    const driveDetailsSub = document.getElementById('drive-details-sub');
+    const detailTotalSize = document.getElementById('detail-total-size');
+    const detailUsedSize = document.getElementById('detail-used-size');
+    const detailFreeSize = document.getElementById('detail-free-size');
+    const detailPercentText = document.getElementById('detail-percent-text');
+    const detailProgressBar = document.getElementById('detail-progress-bar');
+    const driveDetailsFoldersList = document.getElementById('drive-details-folders-list');
+    const driveDetailsCloseBtn = document.getElementById('drive-details-close-btn');
+    const btnDetailSetSource = document.getElementById('btn-detail-set-source');
+    const btnDetailSetTarget = document.getElementById('btn-detail-set-target');
+    let currentDetailDrive = 'C:';
+
+    // Batch User Folders Elements
+    const userFolderSelectAll = document.getElementById('user-folder-select-all');
+    const userFoldersBatchTarget = document.getElementById('user-folders-batch-target');
+    const btnBatchMoveUserFolders = document.getElementById('btn-batch-move-user-folders');
+
+    // Universal Transfer Elements
+    const univSourceDriveSelect = document.getElementById('univ-source-drive');
+    const univTargetDriveSelect = document.getElementById('univ-target-drive');
+    const univSourceName = document.getElementById('univ-source-name');
+    const univFolderList = document.getElementById('univ-folder-list');
+    const btnUnivSelectAll = document.getElementById('btn-univ-select-all');
+    const btnUnivClearAll = document.getElementById('btn-univ-clear-all');
+    const univSelectedCount = document.getElementById('univ-selected-count');
+    const univSelectedSize = document.getElementById('univ-selected-size');
+    const btnUnivTransfer = document.getElementById('btn-univ-transfer');
+
+    // Boost & Processes Elements
     const editorBoostBtn = document.getElementById('editor-boost-btn');
     const coderBoostBtn = document.getElementById('coder-boost-btn');
-    
     const boostResultCard = document.getElementById('boost-result-card');
     const resultTitleText = document.getElementById('result-title-text');
     const resultFreedBadge = document.getElementById('result-freed-badge');
     const resultText = document.getElementById('result-text');
     const closedAppsList = document.getElementById('closed-apps-list');
-    
     const processesTbody = document.getElementById('processes-tbody');
     const procSearchInput = document.getElementById('proc-search-input');
     const refreshAllBtn = document.getElementById('refresh-all-btn');
@@ -45,6 +79,406 @@ document.addEventListener('DOMContentLoaded', () => {
     const transferLoadingOverlay = document.getElementById('transfer-loading-overlay');
     const loadingTitle = document.getElementById('loading-title');
     const loadingDesc = document.getElementById('loading-desc');
+
+
+    // 3. Load Drives Info
+    async function loadDrives() {
+        try {
+            const res = await fetch('/api/drives');
+            const data = await res.json();
+            if (data.drives) {
+                drivesData = data.drives;
+                renderDrives(data.drives);
+                populateDriveDropdowns(data.drives);
+            }
+        } catch (err) {
+            drivesGrid.innerHTML = `<div class="error-msg">មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Drives</div>`;
+        }
+    }
+
+    function populateDriveDropdowns(drives) {
+        if (!univSourceDriveSelect || !univTargetDriveSelect) return;
+        const driveOptions = drives.map(d => `<option value="${d.drive}">${d.drive} (${d.name} - ទំនេរ ${d.freeGB} GB)</option>`).join('');
+        univSourceDriveSelect.innerHTML = driveOptions;
+        univTargetDriveSelect.innerHTML = driveOptions;
+
+        // Default target to F: or non-C drive
+        const defaultTarget = drives.find(d => d.drive.startsWith('F')) || drives.find(d => !d.drive.startsWith('C')) || drives[0];
+        if (defaultTarget) univTargetDriveSelect.value = defaultTarget.drive;
+    }
+
+    function renderDrives(drives) {
+        drivesGrid.innerHTML = drives.map(d => {
+            let driveClass = 'd-drive';
+            let fillClass = 'fill-d';
+            let badgeClass = 'badge-d';
+
+            if (d.drive.startsWith('C')) {
+                driveClass = 'c-drive';
+                fillClass = 'fill-c';
+                badgeClass = 'badge-c';
+            } else if (d.drive.startsWith('F')) {
+                driveClass = 'f-drive';
+                fillClass = 'fill-f';
+                badgeClass = 'badge-f';
+            }
+
+            return `
+                <div class="drive-card ${driveClass}">
+                    <div class="drive-header">
+                        <div class="drive-info">
+                            <h3><i class="fa-solid fa-hard-drive"></i> ${d.drive}</h3>
+                            <span>${d.name || 'Local Storage'} (${d.fileSystem || 'NTFS'})</span>
+                        </div>
+                        <span class="badge-drive ${badgeClass}">${d.usedPercent}% ប្រើប្រាស់</span>
+                    </div>
+
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill ${fillClass}" style="width: ${d.usedPercent}%"></div>
+                    </div>
+
+                    <div class="drive-meta" style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                        <div>
+                            <div>ទំនេរ៖ <strong>${d.freeGB} GB</strong></div>
+                            <span style="font-size:11px; color:var(--text-sub);">ទំហំសរុប៖ ${d.sizeGB} GB</span>
+                        </div>
+                        <button class="btn btn-secondary btn-drive-details" data-drive="${d.drive}" style="padding: 6px 12px; font-size:12px;">
+                            <i class="fa-solid fa-magnifying-glass"></i> Details
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        document.querySelectorAll('.btn-drive-details').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const driveLetter = btn.getAttribute('data-drive');
+                openDriveDetailsModal(driveLetter);
+            });
+        });
+    }
+
+    // DRIVE DETAILS MODAL LOGIC
+    async function openDriveDetailsModal(driveLetter) {
+        currentDetailDrive = driveLetter;
+        const driveObj = drivesData.find(d => d.drive === driveLetter) || { drive: driveLetter, name: 'Drive', fileSystem: 'NTFS', sizeGB: 0, usedGB: 0, freeGB: 0, usedPercent: 0 };
+        
+        driveDetailsTitle.textContent = `ព័ត៌មានលម្អិត Drive ${driveLetter}`;
+        driveDetailsSub.textContent = `Volume Name: ${driveObj.name} | File System: ${driveObj.fileSystem}`;
+        detailTotalSize.textContent = `${driveObj.sizeGB} GB`;
+        detailUsedSize.textContent = `${driveObj.usedGB} GB`;
+        detailFreeSize.textContent = `${driveObj.freeGB} GB`;
+        detailPercentText.textContent = `${driveObj.usedPercent}%`;
+        detailProgressBar.style.width = `${driveObj.usedPercent}%`;
+
+        driveDetailsFoldersList.innerHTML = `<div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន Top Folders...</div>`;
+        driveDetailsModal.classList.remove('hidden');
+
+        try {
+            const res = await fetch(`/api/drive-details?drive=${driveLetter}`);
+            const data = await res.json();
+            if (data.topFolders) {
+                renderDriveDetailsFolders(data.topFolders);
+            }
+        } catch (e) {
+            driveDetailsFoldersList.innerHTML = `<div class="text-center style="color:var(--accent-rose)">❌ មានបញ្ហាក្នុងការទាញយក Folders</div>`;
+        }
+    }
+
+    function renderDriveDetailsFolders(folders) {
+        if (folders.length === 0) {
+            driveDetailsFoldersList.innerHTML = `<div class="text-center" style="padding: 12px; color: var(--text-muted);">គ្មាន Folder ធំៗឡើយ</div>`;
+            return;
+        }
+
+        driveDetailsFoldersList.innerHTML = folders.map(item => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px;">
+                <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
+                    <i class="${item.isDirectory ? 'fa-solid fa-folder color-cyan' : 'fa-solid fa-file color-blue'}"></i>
+                    <span style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px;" title="${item.path}">${item.name}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="color: var(--text-muted); font-size: 12px;">${item.count} files</span>
+                    <strong style="color: var(--accent-emerald); font-size: 13px;">${item.sizeGB > 1 ? item.sizeGB + ' GB' : item.sizeMB + ' MB'}</strong>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    if (driveDetailsCloseBtn) {
+        driveDetailsCloseBtn.addEventListener('click', () => driveDetailsModal.classList.add('hidden'));
+    }
+    if (btnDetailSetSource) {
+        btnDetailSetSource.addEventListener('click', () => {
+            driveDetailsModal.classList.add('hidden');
+            if (univSourceDriveSelect) {
+                univSourceDriveSelect.value = currentDetailDrive;
+                loadUnivSourceDrive(currentDetailDrive);
+                showToast(`បានកំណត់ Drive ${currentDetailDrive} ជា Source Drive`, 'info');
+            }
+        });
+    }
+    if (btnDetailSetTarget) {
+        btnDetailSetTarget.addEventListener('click', () => {
+            driveDetailsModal.classList.add('hidden');
+            if (univTargetDriveSelect) {
+                univTargetDriveSelect.value = currentDetailDrive;
+                showToast(`បានកំណត់ Drive ${currentDetailDrive} ជា Target Drive`, 'info');
+            }
+        });
+    }
+
+
+    // 4. Load User Folders in C: (With Multi-Select)
+    async function loadUserFolders() {
+        try {
+            const res = await fetch('/api/user-folders');
+            const data = await res.json();
+            if (data.folders) {
+                renderUserFolders(data.folders);
+            }
+        } catch (err) {
+            userFoldersTbody.innerHTML = `<tr><td colspan="7" class="text-center">មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Folders</td></tr>`;
+        }
+    }
+
+    function renderUserFolders(folders) {
+        const availableTargetDrives = drivesData.filter(d => !d.drive.startsWith('C')).map(d => d.drive);
+        
+        userFoldersTbody.innerHTML = folders.map(f => {
+            const defaultSelected = availableTargetDrives.find(d => d.startsWith('F')) || availableTargetDrives[0] || 'F:';
+
+            const optionsHtml = availableTargetDrives.map(drive => 
+                `<option value="${drive}" ${drive === defaultSelected ? 'selected' : ''}>${drive} (Drive ${drive.replace(':', '')})</option>`
+            ).join('');
+
+            return `
+                <tr>
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="user-folder-cb" data-folder="${f.folder}" data-path="${f.path}" style="width:16px; height:16px; cursor:pointer;">
+                    </td>
+                    <td><strong><i class="fa-solid fa-folder-open color-cyan"></i> ${f.folder}</strong></td>
+                    <td class="text-sub">${f.path}</td>
+                    <td>${f.count.toLocaleString()} ឯកសារ</td>
+                    <td><strong class="color-cyan">${f.sizeGB > 1 ? f.sizeGB + ' GB' : f.sizeMB + ' MB'}</strong></td>
+                    <td>
+                        <select class="drive-select" id="select-${f.folder}" data-folder="${f.folder}">
+                            ${optionsHtml}
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn btn-cyan btn-move" id="btn-move-${f.folder}" data-folder="${f.folder}">
+                            <i class="fa-solid fa-arrow-right"></i> <span class="btn-text">ផ្ទេរទៅ ${defaultSelected}</span>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Select All Handler for User Folders
+        if (userFolderSelectAll) {
+            userFolderSelectAll.checked = false;
+            userFolderSelectAll.onclick = () => {
+                const checked = userFolderSelectAll.checked;
+                document.querySelectorAll('.user-folder-cb').forEach(cb => cb.checked = checked);
+                updateBatchUserFoldersState();
+            };
+        }
+
+        document.querySelectorAll('.user-folder-cb').forEach(cb => {
+            cb.addEventListener('change', updateBatchUserFoldersState);
+        });
+
+        // Dropdown dynamic button text updater
+        document.querySelectorAll('.drive-select').forEach(selectElem => {
+            selectElem.addEventListener('change', () => {
+                const folderName = selectElem.getAttribute('data-folder');
+                const selectedDrive = selectElem.value;
+                const btnElem = document.getElementById(`btn-move-${folderName}`);
+                if (btnElem) {
+                    const btnTextSpan = btnElem.querySelector('.btn-text');
+                    if (btnTextSpan) {
+                        btnTextSpan.textContent = `ផ្ទេរទៅ ${selectedDrive}`;
+                    }
+                }
+            });
+        });
+
+        // Single Move Buttons
+        document.querySelectorAll('.btn-move').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const folderName = btn.getAttribute('data-folder');
+                const selectElem = document.getElementById(`select-${folderName}`);
+                const targetDrive = selectElem ? selectElem.value : 'F:';
+
+                pendingTransfer = { folderName, targetDrive };
+                pendingBatchTransfer = null;
+                
+                modalTitle.textContent = `បញ្ជាក់ការផ្ទេរ Folder "${folderName}"`;
+                modalDesc.innerHTML = `តើអ្នកពិតជាចង់ផ្ទេរឯកសារក្នុង <strong>${folderName}</strong> ពី Drive C ទៅកាន់ <strong>${targetDrive}</strong> មែនទេ?`;
+                confirmModalOverlay.classList.remove('hidden');
+            });
+        });
+    }
+
+    function updateBatchUserFoldersState() {
+        const checkedCbs = document.querySelectorAll('.user-folder-cb:checked');
+        const count = checkedCbs.length;
+        if (btnBatchMoveUserFolders) {
+            btnBatchMoveUserFolders.disabled = count === 0;
+            btnBatchMoveUserFolders.innerHTML = `<i class="fa-solid fa-truck-ramp-box"></i> ផ្ទេរ Folders ដែលបានជ្រើស (${count})`;
+        }
+    }
+
+    if (btnBatchMoveUserFolders) {
+        btnBatchMoveUserFolders.addEventListener('click', () => {
+            const checkedCbs = document.querySelectorAll('.user-folder-cb:checked');
+            if (checkedCbs.length === 0) return;
+
+            const targetDrive = userFoldersBatchTarget ? userFoldersBatchTarget.value : 'F:';
+            const items = Array.from(checkedCbs).map(cb => ({
+                folderName: cb.getAttribute('data-folder'),
+                sourcePath: cb.getAttribute('data-path')
+            }));
+
+            pendingBatchTransfer = { items, targetDrive };
+            pendingTransfer = null;
+
+            modalTitle.innerHTML = `<span style="color:var(--accent-cyan)"><i class="fa-solid fa-truck-ramp-box"></i> បញ្ជាក់ការផ្ទេរ ${items.length} Folders ទៅកាន់ ${targetDrive}</span>`;
+            modalDesc.innerHTML = `
+                តើអ្នកពិតជាចង់ផ្ទេរ <strong>${items.length} Folders</strong> ពី Drive C ទៅកាន់ <strong>${targetDrive}</strong> មែនទេ?<br><br>
+                <div style="max-height:100px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; font-size:12px;">
+                    ${items.map(i => `<span class="closed-app-tag" style="margin:2px; display:inline-block;"><i class="fa-solid fa-folder color-cyan"></i> ${i.folderName}</span>`).join('')}
+                </div>
+            `;
+            modalConfirmBtn.className = 'btn btn-cyan';
+            modalConfirmBtn.textContent = `យល់ព្រមផ្ទេរទាំង ${items.length} Folders`;
+            confirmModalOverlay.classList.remove('hidden');
+        });
+    }
+
+
+    // UNIVERSAL DRIVE-TO-DRIVE TRANSFER LOGIC
+    if (univSourceDriveSelect) {
+        univSourceDriveSelect.addEventListener('change', () => {
+            loadUnivSourceDrive(univSourceDriveSelect.value);
+        });
+    }
+
+    async function loadUnivSourceDrive(driveLetter) {
+        currentUnivDrive = driveLetter;
+        if (univSourceName) univSourceName.textContent = `Drive ${driveLetter}`;
+        univFolderList.innerHTML = `<div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន Items ក្នុង ${driveLetter}...</div>`;
+
+        try {
+            const res = await fetch(`/api/drive-details?drive=${driveLetter}`);
+            const data = await res.json();
+            if (data.topFolders) {
+                univSourceItems = data.topFolders;
+                renderUnivFolderList(data.topFolders);
+            }
+        } catch (e) {
+            univFolderList.innerHTML = `<div class="text-center" style="color:var(--accent-rose)">❌ មានបញ្ហាក្នុងការស្កែន Drive ${driveLetter}</div>`;
+        }
+    }
+
+    function renderUnivFolderList(items) {
+        if (items.length === 0) {
+            univFolderList.innerHTML = `<div class="text-center" style="padding: 12px; color: var(--text-muted);">គ្មាន Folder/File អាចផ្ទេរបានឡើយ</div>`;
+            return;
+        }
+
+        univFolderList.innerHTML = items.map(item => `
+            <label style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; user-select: none;">
+                <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                    <input type="checkbox" class="univ-cb" data-path="${item.path}" data-name="${item.name}" data-sizebytes="${item.sizeBytes}" style="width:16px; height:16px; cursor:pointer;">
+                    <i class="${item.isDirectory ? 'fa-solid fa-folder color-cyan' : 'fa-solid fa-file color-blue'}"></i>
+                    <span style="font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;" title="${item.path}">${item.name}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 11px; color: var(--text-muted);">${item.count} files</span>
+                    <strong style="color: var(--accent-emerald); font-size: 13px;">${item.sizeGB > 1 ? item.sizeGB + ' GB' : item.sizeMB + ' MB'}</strong>
+                </div>
+            </label>
+        `).join('');
+
+        document.querySelectorAll('.univ-cb').forEach(cb => cb.addEventListener('change', updateUnivSelectionState));
+        updateUnivSelectionState();
+    }
+
+    function updateUnivSelectionState() {
+        const checkedCbs = document.querySelectorAll('.univ-cb:checked');
+        const count = checkedCbs.length;
+        let totalBytes = 0;
+
+        checkedCbs.forEach(cb => {
+            totalBytes += parseInt(cb.getAttribute('data-sizebytes') || '0', 10);
+        });
+
+        const sizeMB = (totalBytes / (1024 * 1024)).toFixed(1);
+        const sizeGB = (totalBytes / (1024 ** 3)).toFixed(2);
+        const sizeStr = parseFloat(sizeGB) > 1 ? `${sizeGB} GB` : `${sizeMB} MB`;
+
+        if (univSelectedCount) univSelectedCount.textContent = count;
+        if (univSelectedSize) univSelectedSize.textContent = sizeStr;
+
+        if (btnUnivTransfer) {
+            btnUnivTransfer.disabled = count === 0;
+            const target = univTargetDriveSelect ? univTargetDriveSelect.value : 'Target Drive';
+            btnUnivTransfer.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ផ្ទេរ ${count} Items ដែលបានជ្រើសទៅកាន់ ${target}`;
+        }
+    }
+
+    if (btnUnivSelectAll) {
+        btnUnivSelectAll.addEventListener('click', () => {
+            document.querySelectorAll('.univ-cb').forEach(cb => cb.checked = true);
+            updateUnivSelectionState();
+        });
+    }
+    if (btnUnivClearAll) {
+        btnUnivClearAll.addEventListener('click', () => {
+            document.querySelectorAll('.univ-cb').forEach(cb => cb.checked = false);
+            updateUnivSelectionState();
+        });
+    }
+
+    if (univTargetDriveSelect) {
+        univTargetDriveSelect.addEventListener('change', updateUnivSelectionState);
+    }
+
+    if (btnUnivTransfer) {
+        btnUnivTransfer.addEventListener('click', () => {
+            const checkedCbs = document.querySelectorAll('.univ-cb:checked');
+            if (checkedCbs.length === 0) return;
+
+            const sourceDrive = univSourceDriveSelect.value;
+            const targetDrive = univTargetDriveSelect.value;
+
+            if (sourceDrive === targetDrive) {
+                showToast(`❌ Source Drive និង Target Drive មិនអាចដូចគ្នា (${sourceDrive}) ទេ!`, 'error');
+                return;
+            }
+
+            const items = Array.from(checkedCbs).map(cb => ({
+                sourcePath: cb.getAttribute('data-path'),
+                folderName: cb.getAttribute('data-name')
+            }));
+
+            pendingBatchTransfer = { items, targetDrive };
+            pendingTransfer = null;
+
+            modalTitle.innerHTML = `<span style="color:var(--accent-cyan)"><i class="fa-solid fa-paper-plane"></i> បញ្ជាក់ការផ្ទេរ ${items.length} Items ពី ${sourceDrive} ទៅ ${targetDrive}</span>`;
+            modalDesc.innerHTML = `
+                តើអ្នកពិតជាចង់ផ្ទេរ <strong>${items.length} Items</strong> ពី <strong>${sourceDrive}</strong> ទៅកាន់ <strong>${targetDrive}\\Migrated_Files</strong> មែនទេ?<br><br>
+                <div style="max-height:100px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; font-size:12px;">
+                    ${items.map(i => `<span class="closed-app-tag" style="margin:2px; display:inline-block;"><i class="fa-solid fa-file color-cyan"></i> ${i.folderName}</span>`).join('')}
+                </div>
+            `;
+            modalConfirmBtn.className = 'btn btn-emerald';
+            modalConfirmBtn.textContent = `យល់ព្រមផ្ទេរទាំង ${items.length} Items`;
+            confirmModalOverlay.classList.remove('hidden');
+        });
+    }
 
 
     navButtons.forEach(btn => {
@@ -297,7 +731,80 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
 
-        // Handle FILE TRANSFER confirmation
+        // Handle BATCH FILE TRANSFER confirmation
+        if (pendingBatchTransfer) {
+            const { items, targetDrive } = pendingBatchTransfer;
+            pendingBatchTransfer = null;
+            confirmModalOverlay.classList.add('hidden');
+
+            loadingTitle.textContent = `កំពុងផ្ទេរ ${items.length} Items ទៅកាន់ ${targetDrive}...`;
+            loadingDesc.innerHTML = `ប្រព័ន្ធកំពុងផ្ទេរ ${items.length} items ទៅកាន់ <strong>${targetDrive}\\Migrated_Files</strong> ដោយសុវត្ថិភាព...`;
+
+            const percentText = document.getElementById('progress-percent-text');
+            const barFill = document.getElementById('progress-bar-fill');
+            if (percentText) percentText.textContent = '0%';
+            if (barFill) barFill.style.width = '0%';
+
+            let elapsedSeconds = 0;
+            const timerCounter = document.getElementById('timer-counter');
+            if (timerCounter) timerCounter.textContent = '00:00';
+
+            if (transferTimerInterval) clearInterval(transferTimerInterval);
+            transferTimerInterval = setInterval(() => {
+                elapsedSeconds++;
+                const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+                const secs = String(elapsedSeconds % 60).padStart(2, '0');
+                if (timerCounter) timerCounter.textContent = `${mins}:${secs}`;
+            }, 1000);
+
+            if (transferProgressPollInterval) clearInterval(transferProgressPollInterval);
+            transferProgressPollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch('/api/move-progress');
+                    const data = await res.json();
+                    if (data && typeof data.percent === 'number') {
+                        if (percentText) percentText.textContent = `${data.percent}%`;
+                        if (barFill) barFill.style.width = `${data.percent}%`;
+                        if (data.currentItem && data.batchTotal) {
+                            loadingTitle.textContent = `កំពុងផ្ទេរ (${data.batchIndex}/${data.batchTotal}): "${data.currentItem}"`;
+                        }
+                    }
+                } catch (_) {}
+            }, 300);
+
+            transferLoadingOverlay.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/move-multiple', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items, targetDrive })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    if (percentText) percentText.textContent = '100%';
+                    if (barFill) barFill.style.width = '100%';
+                    showToast(`✅ បានផ្ទេរ ${result.successCount}/${items.length} items ទៅ ${targetDrive} រួចរាល់ដោយសុវត្ថិភាព!`, 'success');
+                } else if (result.cancelled) {
+                    showToast(`⚠️ បានបោះបង់ការផ្ទេរ (${result.successCount} បានផ្ទេររួច)`, 'info');
+                } else {
+                    showToast(`❌ កំហុសក្នុងការផ្ទេរ៖ ${result.errors?.[0] || result.error || 'Failed'}`, 'error');
+                }
+            } catch (err) {
+                showToast('❌ មានបញ្ហាក្នុងការផ្ទេរឯកសារ', 'error');
+            } finally {
+                if (transferTimerInterval) { clearInterval(transferTimerInterval); transferTimerInterval = null; }
+                if (transferProgressPollInterval) { clearInterval(transferProgressPollInterval); transferProgressPollInterval = null; }
+                transferLoadingOverlay.classList.add('hidden');
+                await loadDrives();
+                await loadUserFolders();
+                if (univSourceDriveSelect) loadUnivSourceDrive(univSourceDriveSelect.value);
+            }
+            return;
+        }
+
+        // Handle SINGLE FILE TRANSFER confirmation
         if (!pendingTransfer) return;
 
         const { folderName, targetDrive } = pendingTransfer;
@@ -800,6 +1307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Load drives immediately; load folders once drivesData is ready
         loadDrives().then(() => {
             loadUserFolders();
+            loadUnivSourceDrive('C:');
         });
         scanTemp();
     }
