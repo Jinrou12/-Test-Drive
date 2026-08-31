@@ -40,10 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Batch User Folders Elements
     const userFolderSelectAll = document.getElementById('user-folder-select-all');
+    const userFoldersSourceDrive = document.getElementById('user-folders-source-drive');
     const userFoldersBatchTarget = document.getElementById('user-folders-batch-target');
     const btnBatchMoveUserFolders = document.getElementById('btn-batch-move-user-folders');
 
     // Universal Transfer Elements
+    const univSourceDriveSelect = document.getElementById('univ-source-drive');
     const sourceDrivesCheckboxGroup = document.getElementById('source-drives-checkbox-group');
     const univTargetDriveSelect = document.getElementById('univ-target-drive');
     const univSourceName = document.getElementById('univ-source-name');
@@ -107,19 +109,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateDriveDropdowns(drives) {
-        if (!univTargetDriveSelect) return;
-
+        // Target Options
         const targetOptions = drives.map(d => {
-            const tag = d.isExternal ? '🔌 External' : '💻 Local';
-            return `<option value="${d.drive}">${d.drive} (${d.name} - ${tag} - ទំនេរ ${d.freeGB} GB)</option>`;
+            const tag = d.isExternal ? ' 🔌 External' : ' 💻 Local';
+            return `<option value="${d.drive}">${d.drive} (${d.name || 'Drive'}${tag} - ទំនេរ ${d.freeGB} GB)</option>`;
         }).join('');
-        univTargetDriveSelect.innerHTML = targetOptions;
 
-        // Default target to External or non-C drive
-        const defaultTarget = drives.find(d => d.isExternal) || drives.find(d => !d.drive.startsWith('C')) || drives[0];
-        if (defaultTarget) univTargetDriveSelect.value = defaultTarget.drive;
+        if (univTargetDriveSelect) {
+            univTargetDriveSelect.innerHTML = targetOptions;
+            const defaultTarget = drives.find(d => d.isExternal) || drives.find(d => !d.drive.startsWith('C')) || drives[0];
+            if (defaultTarget) univTargetDriveSelect.value = defaultTarget.drive;
+        }
+
+        if (userFoldersBatchTarget) {
+            userFoldersBatchTarget.innerHTML = targetOptions;
+            const defaultTarget = drives.find(d => d.isExternal) || drives.find(d => !d.drive.startsWith('C')) || drives[0];
+            if (defaultTarget) userFoldersBatchTarget.value = defaultTarget.drive;
+        }
+
+        // Source Options
+        const sourceOptions = drives.map(d => {
+            const tag = d.isExternal ? ' 🔌 External' : ' 💻 Local';
+            return `<option value="${d.drive}">Drive ${d.drive} (${d.name || 'Drive'}${tag} - ទំនេរ ${d.freeGB} GB)</option>`;
+        }).join('');
+
+        if (univSourceDriveSelect) {
+            univSourceDriveSelect.innerHTML = sourceOptions;
+            univSourceDriveSelect.value = 'C:';
+        }
+
+        if (userFoldersSourceDrive) {
+            userFoldersSourceDrive.innerHTML = sourceOptions;
+            userFoldersSourceDrive.value = 'C:';
+        }
 
         renderSourceDriveCheckboxes(drives);
+    }
+
+    // Attach Source Dropdown listener
+    if (univSourceDriveSelect) {
+        univSourceDriveSelect.addEventListener('change', () => {
+            const selectedDrive = univSourceDriveSelect.value;
+            const cbs = document.querySelectorAll('.source-drive-cb');
+            cbs.forEach(cb => {
+                const matches = cb.getAttribute('data-drive') === selectedDrive;
+                cb.checked = matches;
+                cb.closest('label').style.border = matches ? '1px solid var(--accent-cyan)' : '1px solid var(--border-color)';
+            });
+            loadSelectedSourceDrives();
+        });
+    }
+
+    if (userFoldersSourceDrive) {
+        userFoldersSourceDrive.addEventListener('change', () => {
+            loadUserFolders();
+        });
     }
 
     // Render drive checkboxes into #source-drives-checkbox-group
@@ -147,14 +191,20 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }).join('');
 
-        // Highlight the default-checked drive labels
+        // Highlight default-checked drive labels
         sourceDrivesCheckboxGroup.querySelectorAll('.source-drive-cb:checked').forEach(cb => {
             cb.closest('label').style.border = '1px solid var(--accent-cyan)';
         });
 
-        // Wire up change event: reload source list whenever checkbox selection changes
+        // Wire up change event
         sourceDrivesCheckboxGroup.querySelectorAll('.source-drive-cb').forEach(cb => {
-            cb.addEventListener('change', () => loadSelectedSourceDrives());
+            cb.addEventListener('change', () => {
+                const checkedCbs = sourceDrivesCheckboxGroup.querySelectorAll('.source-drive-cb:checked');
+                if (checkedCbs.length === 1 && univSourceDriveSelect) {
+                    univSourceDriveSelect.value = checkedCbs[0].getAttribute('data-drive');
+                }
+                loadSelectedSourceDrives();
+            });
         });
     }
 
@@ -282,16 +332,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // 4. Load User Folders in C: (With Multi-Select)
+    // 4. Load Folders from Selected Source Drive (With Multi-Select)
     async function loadUserFolders() {
-        try {
-            const res = await fetch('/api/user-folders');
-            const data = await res.json();
-            if (data.folders) {
-                renderUserFolders(data.folders);
+        const sourceDrive = userFoldersSourceDrive ? userFoldersSourceDrive.value : 'C:';
+        userFoldersTbody.innerHTML = `<tr><td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន Folders ក្នុង Drive ${sourceDrive}...</td></tr>`;
+
+        if (sourceDrive === 'C:') {
+            try {
+                const res = await fetch('/api/user-folders');
+                const data = await res.json();
+                if (data.folders) {
+                    renderUserFolders(data.folders);
+                }
+            } catch (err) {
+                userFoldersTbody.innerHTML = `<tr><td colspan="7" class="text-center">មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Folders</td></tr>`;
             }
-        } catch (err) {
-            userFoldersTbody.innerHTML = `<tr><td colspan="7" class="text-center">មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Folders</td></tr>`;
+        } else {
+            try {
+                const res = await fetch(`/api/drive-details?drive=${sourceDrive}`);
+                const data = await res.json();
+                if (data.topFolders) {
+                    const formatted = data.topFolders.map(tf => ({
+                        folder: tf.name,
+                        path: tf.path,
+                        count: tf.count || 1,
+                        sizeBytes: tf.sizeBytes || 0,
+                        sizeMB: tf.sizeMB || 0,
+                        sizeGB: tf.sizeGB || 0
+                    }));
+                    renderUserFolders(formatted);
+                }
+            } catch (err) {
+                userFoldersTbody.innerHTML = `<tr><td colspan="7" class="text-center">មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Folders ពី Drive ${sourceDrive}</td></tr>`;
+            }
         }
     }
 
