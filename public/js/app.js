@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendingEndTask = null;  // { pid, name }
     let pendingEndAll = null;   // { filter, items: [{ pid, name, ramMB }] }
     let transferTimerInterval = null;
+    let transferProgressPollInterval = null;
     let currentTab = 'drives-tab';
 
     // DOM Elements
@@ -309,6 +310,12 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingTitle.textContent = `កំពុងផ្ទេរ Folder "${folderName}"...`;
         loadingDesc.innerHTML = `ប្រព័ន្ធកំពុងផ្ទេរឯកសារពី Drive C ទៅកាន់ <strong>${targetDrive}\\Migrated_Files\\${folderName}</strong> ដោយសុវត្ថិភាព (Robocopy Transfer)...`;
         
+        // Reset Percentage & Bar
+        const percentText = document.getElementById('progress-percent-text');
+        const barFill = document.getElementById('progress-bar-fill');
+        if (percentText) percentText.textContent = '0%';
+        if (barFill) barFill.style.width = '0%';
+
         // Start Live Timer Counter
         let elapsedSeconds = 0;
         const timerCounter = document.getElementById('timer-counter');
@@ -322,6 +329,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (timerCounter) timerCounter.textContent = `${mins}:${secs}`;
         }, 1000);
 
+        // Start Progress Polling (every 300ms)
+        if (transferProgressPollInterval) clearInterval(transferProgressPollInterval);
+        transferProgressPollInterval = setInterval(async () => {
+            try {
+                const res = await fetch('/api/move-progress');
+                const data = await res.json();
+                if (data && typeof data.percent === 'number') {
+                    if (percentText) percentText.textContent = `${data.percent}%`;
+                    if (barFill) barFill.style.width = `${data.percent}%`;
+                }
+            } catch (_) {}
+        }, 300);
+
         transferLoadingOverlay.classList.remove('hidden');
 
         try {
@@ -333,7 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await res.json();
 
             if (result.success) {
-                showToast(`✅ ផ្ទេរ "${folderName}" ទៅ ${targetDrive} រួចរាល់ដោយសុវត្ថិភាព!`, 'success');
+                if (percentText) percentText.textContent = '100%';
+                if (barFill) barFill.style.width = '100%';
+                showToast(`✅ ផ្ទេរ "${folderName}" ទៅ ${targetDrive} រួចរាល់ដោយសុវត្ថិភាព (100%)!`, 'success');
                 await loadDrives();
                 await loadUserFolders();
             } else if (result.cancelled) {
@@ -348,6 +370,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(transferTimerInterval);
                 transferTimerInterval = null;
             }
+            if (transferProgressPollInterval) {
+                clearInterval(transferProgressPollInterval);
+                transferProgressPollInterval = null;
+            }
             transferLoadingOverlay.classList.add('hidden');
             pendingTransfer = null;
         }
@@ -361,6 +387,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(transferTimerInterval);
                 transferTimerInterval = null;
             }
+            if (transferProgressPollInterval) {
+                clearInterval(transferProgressPollInterval);
+                transferProgressPollInterval = null;
+            }
             transferLoadingOverlay.classList.add('hidden');
             showToast('⚠️ កំពុងបោះបង់ការផ្ទេរ...', 'info');
 
@@ -373,6 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await loadUserFolders();
         });
     }
+
 
 
     // 5. Scan & Clean Temp Files

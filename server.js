@@ -123,6 +123,9 @@ app.get('/api/user-folders', async (req, res) => {
     res.json({ userHome, folders });
 });
 
+let activeMoveProcess = null;
+let moveProgressPercent = 0;
+
 // ── 3. POST /api/move-folder ─────────────────────────────────────────────
 app.post('/api/move-folder', (req, res) => {
     const { folderName, customPath, targetDrive } = req.body;
@@ -148,28 +151,59 @@ app.post('/api/move-folder', (req, res) => {
         return res.status(404).json({ error: `Source path does not exist: ${sourcePath}` });
     }
 
-    // /E = copy subdirectories incl empty, /MOVE = delete source after copy
-    // /R:2 /W:1 = retry twice, wait 1s. /NJH /NJS = suppress headers/summary
-    const cmd = `robocopy "${sourcePath}" "${destinationDir}" /E /MOVE /BYTES /R:2 /W:1 /NJH /NJS`;
+    moveProgressPercent = 0;
+    const args = [sourcePath, destinationDir, '/E', '/MOVE', '/BYTES', '/R:2', '/W:1'];
+    let stdoutData = '';
+    let stderrData = '';
 
-    activeMoveProcess = exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err, stdout, stderr) => {
+    const { spawn } = require('child_process');
+    activeMoveProcess = spawn('robocopy', args);
+
+    activeMoveProcess.stdout.on('data', (data) => {
+        const text = data.toString();
+        stdoutData += text;
+        const matches = text.match(/(\d{1,3}(\.\d+)?)%/g);
+        if (matches && matches.length > 0) {
+            const lastMatch = matches[matches.length - 1];
+            const num = parseFloat(lastMatch.replace('%', ''));
+            if (!isNaN(num) && num >= 0 && num <= 100) {
+                moveProgressPercent = Math.round(num);
+            }
+        }
+    });
+
+    activeMoveProcess.stderr.on('data', (data) => {
+        stderrData += data.toString();
+    });
+
+    activeMoveProcess.on('close', (code) => {
+        const wasKilled = activeMoveProcess && activeMoveProcess.killed;
         activeMoveProcess = null;
-        if (err && err.killed) {
+
+        if (wasKilled) {
             return res.json({ success: false, cancelled: true, message: 'Transfer cancelled by user' });
         }
+
         // Robocopy exit codes 0-7 = success/partial success
-        const isSuccess = !err || (typeof err.code === 'number' && err.code <= 7);
+        const isSuccess = typeof code === 'number' && code <= 7;
         if (isSuccess) {
+            moveProgressPercent = 100;
             res.json({ success: true, message: `Migrated to ${destinationDir}`, sourcePath, destinationDir });
         } else {
-            res.status(500).json({ error: `Robocopy failed (exit ${err ? err.code : '?'}). Controlled Folder Access or file lock detected.`, stdout, stderr });
+            res.status(500).json({ error: `Robocopy failed (exit code ${code}). Check Controlled Folder Access or file permissions.`, stdout: stdoutData, stderr: stderrData });
         }
     });
 });
 
-let activeMoveProcess = null;
+// ── 3B. GET /api/move-progress ───────────────────────────────────────────
+app.get('/api/move-progress', (req, res) => {
+    res.json({
+        active: activeMoveProcess !== null,
+        percent: moveProgressPercent
+    });
+});
 
-// ── 3B. POST /api/cancel-move ─────────────────────────────────────────────
+// ── 3C. POST /api/cancel-move ─────────────────────────────────────────────
 app.post('/api/cancel-move', (req, res) => {
     if (activeMoveProcess) {
         try {
@@ -181,6 +215,7 @@ app.post('/api/cancel-move', (req, res) => {
     taskkillName('robocopy');
     res.json({ success: true, message: 'Cancelled move transfer' });
 });
+
 
 
 // ── 4. GET /api/scan-temp ────────────────────────────────────────────────

@@ -281,8 +281,19 @@
             <h3 id="loading-title">កំពុងផ្ទេរឯកសារ...</h3>
             <p id="loading-desc">សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងផ្ទេរឯកសារយ៉ាងប្រុងប្រយ័ត្ន (Robocopy Transfer)...</p>
             
+            <!-- Percentage & Progress Bar -->
+            <div class="progress-container" style="margin: 16px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 700; font-size: 14px;">
+                    <span style="color: var(--text-muted);">ដំណើរការផ្ទេរ (Progress):</span>
+                    <span id="progress-percent-text" style="color: var(--accent-cyan); font-size: 18px; font-weight: 800;">0%</span>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.1); border-radius: 10px; height: 12px; overflow: hidden; width: 100%;">
+                    <div id="progress-bar-fill" style="background: linear-gradient(90deg, #06b6d4, #10b981); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 10px;"></div>
+                </div>
+            </div>
+
             <!-- Live Elapsed Timer Counter -->
-            <div id="loading-timer-box" style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); padding: 10px 16px; border-radius: 8px; margin: 16px 0; color: var(--accent-cyan); font-weight: 700; font-size: 15px;">
+            <div id="loading-timer-box" style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; color: var(--accent-cyan); font-weight: 700; font-size: 14px;">
                 <i class="fa-solid fa-stopwatch" style="margin-right: 6px;"></i> រយៈពេលផ្ទេរ៖ <span id="timer-counter">00:00</span>
             </div>
 
