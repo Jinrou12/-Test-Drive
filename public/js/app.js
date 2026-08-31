@@ -1055,7 +1055,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/clean-temp', { method: 'POST' });
             const data = await res.json();
 
-            showToast('✅ សម្អាត Temp & Cache files រួចរាល់!', 'success');
+            if (data.deletedFiles > 0) {
+                showToast(`✅ សម្អាតបាន ${data.deletedFiles} files (ចំណេញ +${data.freedStr})!`, 'success');
+            } else {
+                showToast(`ℹ️ ឯកសារ ${data.lockedFiles} ផ្សេងទៀតកំពុងត្រូវប្រើប្រាស់ (Active Locked Files)`, 'info');
+            }
             await scanTemp();
             await loadDrives();
         } catch (e) {

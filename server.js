@@ -456,14 +456,54 @@ app.get('/api/scan-temp', (req, res) => {
 });
 
 // ── 5. POST /api/clean-temp ──────────────────────────────────────────────
-app.post('/api/clean-temp', async (req, res) => {
+app.post('/api/clean-temp', (req, res) => {
     const userTemp = os.tmpdir();
     const winTemp = 'C:\\Windows\\Temp';
+    const targets = [userTemp, winTemp];
 
-    const psCmd = `Get-ChildItem -Path '${userTemp}', '${winTemp}' -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue; 'ok'`;
+    let deletedBytes = 0;
+    let deletedFiles = 0;
+    let lockedFiles = 0;
 
-    await runPowerShell(psCmd);
-    res.json({ success: true, message: 'Temporary & Junk files cleaned successfully!' });
+    function cleanDirectory(dirPath) {
+        if (!fs.existsSync(dirPath)) return;
+        try {
+            const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+            for (const entry of entries) {
+                if (entry.name.startsWith('$') || entry.name === 'System Volume Information') continue;
+                const fullPath = path.join(dirPath, entry.name);
+
+                try {
+                    if (entry.isDirectory()) {
+                        cleanDirectory(fullPath);
+                        try { fs.rmdirSync(fullPath); } catch (_) {}
+                    } else if (entry.isFile()) {
+                        const stats = fs.statSync(fullPath);
+                        fs.unlinkSync(fullPath);
+                        deletedBytes += stats.size;
+                        deletedFiles += 1;
+                    }
+                } catch (e) {
+                    lockedFiles += 1;
+                }
+            }
+        } catch (_) {}
+    }
+
+    targets.forEach(t => cleanDirectory(t));
+
+    const freedMB = parseFloat((deletedBytes / (1024 * 1024)).toFixed(1));
+    const freedGB = parseFloat((deletedBytes / (1024 ** 3)).toFixed(2));
+    const freedStr = freedGB > 1 ? `${freedGB} GB` : `${freedMB} MB`;
+
+    res.json({
+        success: true,
+        deletedBytes,
+        freedMB,
+        freedStr,
+        deletedFiles,
+        lockedFiles
+    });
 });
 
 // ── 6. GET /api/processes ────────────────────────────────────────────────
