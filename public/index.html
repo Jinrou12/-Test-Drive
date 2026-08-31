@@ -143,45 +143,38 @@
                     <div class="card-header flex-header">
                         <div>
                             <h3 style="color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-right-left"></i> ផ្ទេរឯកសារ Universal & Multi-Drive Queue (External Drive Supported)
+                                <i class="fa-solid fa-right-left"></i> ផ្ទេរឯកសារ Universal (Multi-Drive)
                             </h3>
-                            <p>អាចជ្រើសរើស Folder ពី Drive ច្រើនក្នុងពេលតែមួយ (ឧ. C: និង E:) បន្ថែមចូល Queue រួចផ្ទេរចូល Target Drive (ឧ. External Drive F:)</p>
+                            <p>ជ្រើសរើស Source Drives និង Target Drive ដើម្បីផ្ទេរឯកសារ ឬ Folder</p>
                         </div>
                     </div>
 
                     <!-- Step 1 & Step 2 Controls -->
-                    <div class="universal-transfer-controls" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0;">
+                    <div class="universal-transfer-controls" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0;">
                         <!-- Multi Source Drive Checkbox & Dropdown Selector -->
-                        <div class="control-box" style="background: rgba(6, 182, 212, 0.08); border: 2px solid var(--accent-cyan); border-radius: var(--radius-md); padding: 16px;">
-                            <label style="font-weight: 800; color: var(--accent-cyan); font-size: 15px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                                <span><i class="fa-solid fa-hard-drive"></i> 1. ជ្រើសរើស Source Drives (ប្រភព)</span>
-                                <span class="badge-drive badge-c" style="font-size: 11px;">Select Source Drives</span>
+                        <div class="control-box" style="background: rgba(6, 182, 212, 0.08); border: 1px solid var(--accent-cyan); border-radius: var(--radius-md); padding: 12px 14px;">
+                            <label style="font-weight: 700; color: var(--accent-cyan); font-size: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span><i class="fa-solid fa-hard-drive"></i> 1. Source Drives (ប្រភព)</span>
+                                <span class="badge-drive badge-c" style="font-size: 10px;">Source</span>
                             </label>
                             
-                            <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
-                                គ្រីសជ្រើសរើស Drive (អាចជ្រើសរើសច្រើន Drive ក្នុងពេលតែមួយ):
-                            </div>
-                            <div id="source-drives-checkbox-group" style="display: flex; flex-wrap: wrap; gap: 10px; padding: 6px 0; margin-bottom: 12px;">
-                                <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន Drives...</div>
+                            <div id="source-drives-checkbox-group" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                                <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន...</div>
                             </div>
 
-                            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">ឬ ជ្រើសរើសតាម Dropdown:</div>
-                            <select id="univ-source-drive" class="drive-select" style="width: 100%; padding: 8px 12px; font-size: 13px; font-weight: 600;">
-                                <option value="C:">Drive C: (Local Storage)</option>
+                            <select id="univ-source-drive" class="drive-select" style="width: 100%; padding: 6px 10px; font-size: 13px; font-weight: 600;">
+                                <option value="C:">Drive C:</option>
                             </select>
                         </div>
 
                         <!-- Target Drive Selector (Supports External Drives) -->
-                        <div class="control-box" style="background: rgba(16, 185, 129, 0.08); border: 2px solid var(--accent-emerald); border-radius: var(--radius-md); padding: 16px;">
-                            <label style="font-weight: 800; color: var(--accent-emerald); font-size: 15px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                                <span><i class="fa-solid fa-box-archive"></i> 2. ជ្រើសរើស Target Drive (គោលដៅ)</span>
-                                <span class="badge-drive badge-f" style="font-size: 11px;">Target External/Local</span>
+                        <div class="control-box" style="background: rgba(16, 185, 129, 0.08); border: 1px solid var(--accent-emerald); border-radius: var(--radius-md); padding: 12px 14px;">
+                            <label style="font-weight: 700; color: var(--accent-emerald); font-size: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span><i class="fa-solid fa-box-archive"></i> 2. Target Drive (គោលដៅ)</span>
+                                <span class="badge-drive badge-f" style="font-size: 10px;">Target</span>
                             </label>
-                            <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
-                                ជ្រើសរើស Drive គោលដៅសម្រាប់ទទួលឯកសារ:
-                            </div>
-                            <select id="univ-target-drive" class="drive-select" style="width: 100%; padding: 10px; font-size: 14px; font-weight: 700; color: var(--accent-emerald);">
-                                <option value="F:">Drive F: (External / USB)</option>
+                            <select id="univ-target-drive" class="drive-select" style="width: 100%; padding: 8px 10px; font-size: 13px; font-weight: 700; color: var(--accent-emerald); margin-top: 4px;">
+                                <option value="F:">Drive F:</option>
                             </select>
                         </div>
                     </div>
