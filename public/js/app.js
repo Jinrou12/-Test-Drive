@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendingTransfer = null; // { folderName, targetDrive }
     let pendingEndTask = null;  // { pid, name }
     let pendingEndAll = null;   // { filter, items: [{ pid, name, ramMB }] }
+    let transferTimerInterval = null;
     let currentTab = 'drives-tab';
 
     // DOM Elements
@@ -307,6 +308,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show Transfer Progress Overlay
         loadingTitle.textContent = `កំពុងផ្ទេរ Folder "${folderName}"...`;
         loadingDesc.innerHTML = `ប្រព័ន្ធកំពុងផ្ទេរឯកសារពី Drive C ទៅកាន់ <strong>${targetDrive}\\Migrated_Files\\${folderName}</strong> ដោយសុវត្ថិភាព (Robocopy Transfer)...`;
+        
+        // Start Live Timer Counter
+        let elapsedSeconds = 0;
+        const timerCounter = document.getElementById('timer-counter');
+        if (timerCounter) timerCounter.textContent = '00:00';
+
+        if (transferTimerInterval) clearInterval(transferTimerInterval);
+        transferTimerInterval = setInterval(() => {
+            elapsedSeconds++;
+            const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+            const secs = String(elapsedSeconds % 60).padStart(2, '0');
+            if (timerCounter) timerCounter.textContent = `${mins}:${secs}`;
+        }, 1000);
+
         transferLoadingOverlay.classList.remove('hidden');
 
         try {
@@ -318,19 +333,47 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await res.json();
 
             if (result.success) {
-                showToast(`ផ្ទេរ "${folderName}" ទៅ ${targetDrive} រួចរាល់ដោយសុវត្ថិភាព!`, 'success');
+                showToast(`✅ ផ្ទេរ "${folderName}" ទៅ ${targetDrive} រួចរាល់ដោយសុវត្ថិភាព!`, 'success');
                 await loadDrives();
                 await loadUserFolders();
+            } else if (result.cancelled) {
+                showToast(`⚠️ បានបោះបង់ការផ្ទេរ Folder "${folderName}"`, 'info');
             } else {
-                showToast(`កំហុសក្នុងការផ្ទេរ៖ ${result.error}`, 'error');
+                showToast(`❌ កំហុសក្នុងការផ្ទេរ៖ ${result.error || 'Controlled Folder Access blocked Robocopy'}`, 'error');
             }
         } catch (err) {
-            showToast('មានបញ្ហាក្នុងការផ្ទេរឯកសារ', 'error');
+            showToast('❌ មានបញ្ហាក្នុងការផ្ទេរឯកសារ', 'error');
         } finally {
+            if (transferTimerInterval) {
+                clearInterval(transferTimerInterval);
+                transferTimerInterval = null;
+            }
             transferLoadingOverlay.classList.add('hidden');
             pendingTransfer = null;
         }
     });
+
+    // Cancel Transfer Button Event Handler
+    const cancelTransferBtn = document.getElementById('cancel-transfer-btn');
+    if (cancelTransferBtn) {
+        cancelTransferBtn.addEventListener('click', async () => {
+            if (transferTimerInterval) {
+                clearInterval(transferTimerInterval);
+                transferTimerInterval = null;
+            }
+            transferLoadingOverlay.classList.add('hidden');
+            showToast('⚠️ កំពុងបោះបង់ការផ្ទេរ...', 'info');
+
+            try {
+                await fetch('/api/cancel-move', { method: 'POST' });
+            } catch (_) {}
+
+            pendingTransfer = null;
+            await loadDrives();
+            await loadUserFolders();
+        });
+    }
+
 
     // 5. Scan & Clean Temp Files
     async function scanTemp() {

@@ -276,10 +276,20 @@
 
     <!-- TRANSFER PROGRESS LOADING OVERLAY -->
     <div id="transfer-loading-overlay" class="modal-overlay hidden">
-        <div class="modal-card text-center">
+        <div class="modal-card text-center" style="max-width: 480px;">
             <div class="modal-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
             <h3 id="loading-title">កំពុងផ្ទេរឯកសារ...</h3>
             <p id="loading-desc">សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងផ្ទេរឯកសារយ៉ាងប្រុងប្រយ័ត្ន (Robocopy Transfer)...</p>
+            
+            <!-- Live Elapsed Timer Counter -->
+            <div id="loading-timer-box" style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); padding: 10px 16px; border-radius: 8px; margin: 16px 0; color: var(--accent-cyan); font-weight: 700; font-size: 15px;">
+                <i class="fa-solid fa-stopwatch" style="margin-right: 6px;"></i> រយៈពេលផ្ទេរ៖ <span id="timer-counter">00:00</span>
+            </div>
+
+            <!-- Cancel Button -->
+            <button id="cancel-transfer-btn" class="btn btn-rose" style="width: 100%; margin-top: 4px; font-weight: 700;">
+                <i class="fa-solid fa-xmark"></i> បោះបង់ការផ្ទេរ (Cancel Transfer)
+            </button>
         </div>
     </div>
 

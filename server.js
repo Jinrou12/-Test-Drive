@@ -152,16 +152,36 @@ app.post('/api/move-folder', (req, res) => {
     // /R:2 /W:1 = retry twice, wait 1s. /NJH /NJS = suppress headers/summary
     const cmd = `robocopy "${sourcePath}" "${destinationDir}" /E /MOVE /BYTES /R:2 /W:1 /NJH /NJS`;
 
-    exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err, stdout, stderr) => {
+    activeMoveProcess = exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err, stdout, stderr) => {
+        activeMoveProcess = null;
+        if (err && err.killed) {
+            return res.json({ success: false, cancelled: true, message: 'Transfer cancelled by user' });
+        }
         // Robocopy exit codes 0-7 = success/partial success
         const isSuccess = !err || (typeof err.code === 'number' && err.code <= 7);
         if (isSuccess) {
             res.json({ success: true, message: `Migrated to ${destinationDir}`, sourcePath, destinationDir });
         } else {
-            res.status(500).json({ error: `Robocopy failed (exit ${err ? err.code : '?'})`, stdout, stderr });
+            res.status(500).json({ error: `Robocopy failed (exit ${err ? err.code : '?'}). Controlled Folder Access or file lock detected.`, stdout, stderr });
         }
     });
 });
+
+let activeMoveProcess = null;
+
+// ── 3B. POST /api/cancel-move ─────────────────────────────────────────────
+app.post('/api/cancel-move', (req, res) => {
+    if (activeMoveProcess) {
+        try {
+            activeMoveProcess.kill('SIGTERM');
+        } catch (_) {}
+        activeMoveProcess = null;
+    }
+    // Force kill robocopy process
+    taskkillName('robocopy');
+    res.json({ success: true, message: 'Cancelled move transfer' });
+});
+
 
 // ── 4. GET /api/scan-temp ────────────────────────────────────────────────
 app.get('/api/scan-temp', (req, res) => {
