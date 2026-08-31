@@ -172,28 +172,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sourceDrivesCheckboxGroup.innerHTML = drives.map((d, i) => {
             let badgeClass = d.drive.startsWith('C') ? 'badge-c' : d.drive.startsWith('F') ? 'badge-f' : 'badge-d';
-            const isDefaultChecked = i === 0 ? 'checked' : ''; // Default: first drive (usually C:) checked
-            const externalTag = d.isExternal ? ' 🔌' : '';
+            const isDefaultChecked = i === 0 ? 'checked' : ''; // Default: first drive checked
+            const externalTag = d.isExternal ? ' 🔌 (External)' : ' 💻 (Local)';
+            const borderStyle = isDefaultChecked ? '2px solid var(--accent-cyan)' : '1px solid var(--border-color)';
+            const bgStyle = isDefaultChecked ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.05)';
+
             return `
-                <label style="display:inline-flex; align-items:center; gap:7px; cursor:pointer;
-                              background:rgba(255,255,255,0.05); border:1px solid var(--border-color);
-                              border-radius:8px; padding:6px 12px; user-select:none; transition:background 0.2s;"
-                       onmouseover="this.style.background='rgba(6,182,212,0.1)'"
-                       onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                <label class="drive-checkbox-label" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+                              background:${bgStyle}; border:${borderStyle};
+                              border-radius:8px; padding:8px 14px; user-select:none; transition:all 0.2s;">
                     <input type="checkbox" class="source-drive-cb" data-drive="${d.drive}"
                            ${isDefaultChecked}
-                           style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent-cyan);"
-                           onchange="this.closest('label').style.border=this.checked?'1px solid var(--accent-cyan)':'1px solid var(--border-color)'">
-                    <span class="badge-drive ${badgeClass}" style="padding:2px 7px;font-size:11px;">${d.drive}</span>
-                    <span style="font-size:12px;font-weight:600;color:var(--text-main);">${d.name || 'Drive'}${externalTag}</span>
-                    <span style="font-size:11px;color:var(--text-muted);">${d.freeGB}GB free</span>
+                           style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent-cyan);"
+                           onchange="
+                               this.closest('label').style.border=this.checked?'2px solid var(--accent-cyan)':'1px solid var(--border-color)';
+                               this.closest('label').style.background=this.checked?'rgba(6,182,212,0.15)':'rgba(255,255,255,0.05)';
+                           ">
+                    <span class="badge-drive ${badgeClass}" style="padding:3px 8px;font-size:12px;font-weight:700;">Drive ${d.drive}</span>
+                    <span style="font-size:13px;font-weight:700;color:var(--text-main);">${d.name || 'Drive'}${externalTag}</span>
+                    <span style="font-size:11px;color:var(--text-muted);">(ទំនេរ ${d.freeGB} GB)</span>
                 </label>
             `;
         }).join('');
 
         // Highlight default-checked drive labels
         sourceDrivesCheckboxGroup.querySelectorAll('.source-drive-cb:checked').forEach(cb => {
-            cb.closest('label').style.border = '1px solid var(--accent-cyan)';
+            cb.closest('label').style.border = '2px solid var(--accent-cyan)';
+            cb.closest('label').style.background = 'rgba(6,182,212,0.15)';
         });
 
         // Wire up change event
