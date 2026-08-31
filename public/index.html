@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC Optimizer & Drive C Manager</title>
+    <!-- Google Fonts: Inter & Kantumruy Pro for Khmer UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-gauge-high"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>PC Optimizer</h2>
+                    <span>Drive C & Task Manager</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-tab="drives-tab">
+                    <i class="fa-solid fa-hard-drive"></i>
+                    <span>ផ្ទេរឯកសារ Drive C (Transfer)</span>
+                </button>
+                <button class="nav-btn" data-tab="boost-tab">
+                    <i class="fa-solid fa-bolt-lightning"></i>
+                    <span>បិទ Task ឥតប្រយោជន៍ (Boost)</span>
+                </button>
+                <button class="nav-btn" data-tab="processes-tab">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>គ្រប់គ្រង Processes (Tasks)</span>
+                </button>
+            </nav>
+
+            <div class="system-status-widget">
+                <div class="status-title"><i class="fa-solid fa-shield-halved"></i> ស្ថានភាពប្រព័ន្ធ</div>
+                <p>រៀបចំយ៉ាងពិសេសសម្រាប់៖</p>
+                <div class="tags">
+                    <span class="tag"><i class="fa-solid fa-video"></i> Video/Photo Edit Mode</span>
+                    <span class="tag"><i class="fa-solid fa-code"></i> Coder & AI Mode</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header Bar -->
+            <header class="header">
+                <div class="header-title">
+                    <h1 id="page-title">ផ្ទេរឯកសារ និងសម្អាត Drive C</h1>
+                    <p id="page-desc">ប្តូរទំហំទំនេរ Drive C ទៅកាន់ Drive D ឬ F ដោយសុវត្ថិភាព</p>
+                </div>
+                <div class="header-actions">
+                    <button id="refresh-all-btn" class="btn btn-secondary">
+                        <i class="fa-solid fa-rotate"></i> ធ្វើបច្ចុប្បន្នភាព (Refresh)
+                    </button>
+                </div>
+            </header>
+
+            <!-- TAB 1: DRIVES & FILE TRANSFER -->
+            <section id="drives-tab" class="tab-content active">
+                <div class="section-label"><i class="fa-solid fa-database"></i> ស្ថានភាពទំហំដ្រាយ (Drives Status)</div>
+                <div class="drives-grid" id="drives-grid">
+                    <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែនព័ត៌មាន Drives...</div>
+                </div>
+
+                <!-- Fast Temp & Junk Cleanup -->
+                <div class="card clean-card">
+                    <div class="clean-info">
+                        <div class="clean-icon"><i class="fa-solid fa-broom"></i></div>
+                        <div>
+                            <h3>សម្អាតឯកសារបណ្ដោះអាសន្ន (Temp & Cache Files) ក្នុង Drive C:</h3>
+                            <p id="temp-scan-desc">ស្កែនរកឯកសារភាគច្រើនដែលមិនចាំបាច់ក្នុង Windows Temp និង Browser Cache</p>
+                        </div>
+                    </div>
+                    <div class="clean-action">
+                        <div class="temp-badge" id="temp-badge"><i class="fa-solid fa-calculator"></i> 0.0 MB</div>
+                        <button id="clean-temp-btn" class="btn btn-emerald">
+                            <i class="fa-solid fa-trash-can"></i> សម្អាតភ្លាមៗ (Clean Now)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- User Folders Migration Table -->
+                <div class="card table-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-folder-tree"></i> ផ្ទេរ Folder ធំៗពី Drive C ទៅកាន់ Drive ផ្សេងទៀត</h3>
+                        <p>ជ្រើសរើស Folder ដែលស៊ីទំហំធំដើម្បីផ្ទេរទៅ Drive F (204 GB ទំនេរ) ឬ Drive D</p>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ឈ្មោះ Folder</th>
+                                    <th>ទីតាំងដើម (Drive C)</th>
+                                    <th>ចំនួនឯកសារ</th>
+                                    <th>ទំហំសរុប</th>
+                                    <th>ជ្រើសរើស Drive គោលដៅ</th>
+                                    <th>សកម្មភាព</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-folders-tbody">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែនទំហំ Folders...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: EDIT & CODE BOOST -->
+            <section id="boost-tab" class="tab-content">
+                <div class="section-label"><i class="fa-solid fa-sliders"></i> ជ្រើសរើស Mode បង្កើនល្បឿន (Select Optimization Mode)</div>
+
+                <div class="boost-modes-grid">
+                    <!-- MODE 1: VIDEO & PHOTO EDITOR -->
+                    <div class="hero-boost-card editor-mode-card">
+                        <div class="hero-content">
+                            <div class="hero-icon editor-icon"><i class="fa-solid fa-film"></i></div>
+                            <h2>1. Mode សម្រាប់ Video & Photo Editor</h2>
+                            <p>ទាញយក CPU & RAM អតិបរមាសម្រាប់កម្មវិធី **Lightroom, Photoshop, Premiere Pro, DaVinci Resolve**...</p>
+                            
+                            <div class="safe-notice editor-notice">
+                                <i class="fa-solid fa-shield-check"></i>
+                                <span>ការពារដាច់ខាតមិនបិទ Lightroom / Photoshop / Premiere!</span>
+                            </div>
+
+                            <button id="editor-boost-btn" class="btn-hero btn-hero-editor">
+                                <i class="fa-solid fa-clapperboard"></i> BOOST សម្រាប់ EDIT VIDEO/PHOTO
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- MODE 2: CODER & AI -->
+                    <div class="hero-boost-card coder-mode-card">
+                        <div class="hero-content">
+                            <div class="hero-icon coder-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                            <h2>2. Mode សម្រាប់ Coder & AI</h2>
+                            <p>ទាញយក Speed សម្រាប់ **Antigravity, Gemini AI, Claude AI, VS Code, Node.js & Web Testing**...</p>
+                            
+                            <div class="safe-notice coder-notice">
+                                <i class="fa-solid fa-shield-check"></i>
+                                <span>ការពារដាច់ខាតមិនបិទ Antigravity IDE, Claude, Gemini & Dev Tools!</span>
+                            </div>
+
+                            <button id="coder-boost-btn" class="btn-hero btn-hero-coder">
+                                <i class="fa-solid fa-code"></i> BOOST សម្រាប់ CODER & AI
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Boost Log Result -->
+                <div class="card boost-result-card hidden" id="boost-result-card">
+                    <div class="result-header">
+                        <div class="result-title" id="result-title-text"><i class="fa-solid fa-circle-check"></i> លទ្ធផលនៃការទាញយក Speed មកវិញ</div>
+                        <span class="badge-success" id="result-freed-badge">+0 MB Freed</span>
+                    </div>
+                    <p id="result-text">បិទបានចំនួន 0 ដំណើរការ background ឥតប្រយោជន៍។</p>
+                    <div class="closed-apps-list" id="closed-apps-list"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-circle-info"></i> បញ្ជីកម្មវិធី background ឥតប្រយោជន៍ដែលនឹងត្រូវបិទ</h3>
+                    </div>
+                    <div class="targets-grid">
+                        <div class="target-item">
+                            <i class="fa-brands fa-google color-red"></i>
+                            <div><strong>Updaters ឥតប្រយោជន៍</strong><span>(GoogleUpdate, EdgeUpdate)</span></div>
+                        </div>
+                        <div class="target-item">
+                            <i class="fa-brands fa-adobe color-red"></i>
+                            <div><strong>Adobe Background Services</strong><span>(AdobeUpdateService, AGSService, CoreSync)</span></div>
+                        </div>
+                        <div class="target-item">
+                            <i class="fa-brands fa-windows color-blue"></i>
+                            <div><strong>Windows Telemetry & Xbox</strong><span>(Cortana, GameBar, Telemetry)</span></div>
+                        </div>
+                        <div class="target-item">
+                            <i class="fa-solid fa-cloud color-cyan"></i>
+                            <div><strong>Background Cloud Sync</strong><span>(OneDrive, iTunes Helper, Spotify)</span></div>
+                        </div>
+                        <div class="target-item">
+                            <i class="fa-solid fa-film color-red"></i>
+                            <div><strong>Films & TV / Groove Music</strong><span>(Video.UI, ZuneMusic, ZuneVideo)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: LIVE PROCESS MANAGER -->
+            <section id="processes-tab" class="tab-content">
+                <div class="card table-card">
+                    <div class="card-header flex-header">
+                        <div>
+                            <h3><i class="fa-solid fa-microchip"></i> គ្រប់គ្រង Tasks & Processes កំពុងរត់ក្នុងប្រព័ន្ធ</h3>
+                            <p>ស្វែងរក ពិនិត្យមើលតួនាទី និងបិទ Process ណាដែលអ្នកមិនត្រូវការដោយសុវត្ថិភាព</p>
+                        </div>
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="proc-search-input" placeholder="ស្វែងរកតាមឈ្មោះ ឬតួនាទី Process...">
+                        </div>
+                    </div>
+
+                    <!-- Process Category Filters Bar -->
+                    <div class="proc-filter-bar flex-header">
+                        <div class="filter-tabs-group">
+                            <button class="proc-filter-btn active" data-filter="all">
+                                <i class="fa-solid fa-layer-group"></i> ទាំងអស់ <span class="filter-count" id="count-all">0</span>
+                            </button>
+                            <button class="proc-filter-btn filter-bloatware" data-filter="bloatware">
+                                <i class="fa-solid fa-ban"></i> Task ឥតប្រយោជន៍ <span class="filter-count" id="count-bloatware">0</span>
+                            </button>
+                            <button class="proc-filter-btn filter-safe" data-filter="safe">
+                                <i class="fa-solid fa-circle-check"></i> អាចបិទបាន <span class="filter-count" id="count-safe">0</span>
+                            </button>
+                            <button class="proc-filter-btn filter-system" data-filter="system">
+                                <i class="fa-solid fa-shield-halved"></i> ប្រព័ន្ធ (កុំបិទ) <span class="filter-count" id="count-system">0</span>
+                            </button>
+                        </div>
+                        <div class="end-all-container">
+                            <button id="btn-end-all" class="btn btn-rose btn-end-all">
+                                <i class="fa-solid fa-dumpster-fire"></i> <span id="end-all-label">បិទ Task ក្នុង Filter នេះទាំងអស់</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>PID</th>
+                                    <th>ឈ្មោះ & តួនាទី Process</th>
+                                    <th>ប្រភេទ / សុវត្ថិភាព</th>
+                                    <th>ការប្រើ RAM</th>
+                                    <th>ទីតាំងឯកសារ (Path)</th>
+                                    <th>សកម្មភាព</th>
+                                </tr>
+                            </thead>
+                            <tbody id="processes-tbody">
+                                <tr>
+                                    <td colspan="6" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយកបញ្ជី Processes...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- CUSTOM CONFIRMATION MODAL -->
+    <div id="confirm-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-icon"><i class="fa-solid fa-circle-question"></i></div>
+            <h3 id="modal-title">បញ្ជាក់ការផ្ទេរឯកសារ</h3>
+            <p id="modal-desc">តើអ្នកពិតជាចង់ផ្ទេរ Folder នេះពី Drive C ទៅកាន់ Drive គោលដៅមែនទេ?</p>
+            <div class="modal-actions">
+                <button id="modal-cancel-btn" class="btn btn-secondary">បោះបង់ (Cancel)</button>
+                <button id="modal-confirm-btn" class="btn btn-emerald"><i class="fa-solid fa-check"></i> យល់ព្រមផ្ទេរ (Confirm Move)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRANSFER PROGRESS LOADING OVERLAY -->
+    <div id="transfer-loading-overlay" class="modal-overlay hidden">
+        <div class="modal-card text-center">
+            <div class="modal-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+            <h3 id="loading-title">កំពុងផ្ទេរឯកសារ...</h3>
+            <p id="loading-desc">សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងផ្ទេរឯកសារយ៉ាងប្រុងប្រយ័ត្ន (Robocopy Transfer)...</p>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast-container"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
