@@ -107,14 +107,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateDriveDropdowns(drives) {
-        if (!univSourceDriveSelect || !univTargetDriveSelect) return;
-        const driveOptions = drives.map(d => `<option value="${d.drive}">${d.drive} (${d.name} - ទំនេរ ${d.freeGB} GB)</option>`).join('');
-        univSourceDriveSelect.innerHTML = driveOptions;
-        univTargetDriveSelect.innerHTML = driveOptions;
+        if (!univTargetDriveSelect) return;
 
-        // Default target to F: or non-C drive
-        const defaultTarget = drives.find(d => d.drive.startsWith('F')) || drives.find(d => !d.drive.startsWith('C')) || drives[0];
+        const targetOptions = drives.map(d => {
+            const tag = d.isExternal ? '🔌 External' : '💻 Local';
+            return `<option value="${d.drive}">${d.drive} (${d.name} - ${tag} - ទំនេរ ${d.freeGB} GB)</option>`;
+        }).join('');
+        univTargetDriveSelect.innerHTML = targetOptions;
+
+        // Default target to External or non-C drive
+        const defaultTarget = drives.find(d => d.isExternal) || drives.find(d => !d.drive.startsWith('C')) || drives[0];
         if (defaultTarget) univTargetDriveSelect.value = defaultTarget.drive;
+
+        renderSourceDriveCheckboxes(drives);
     }
 
     function renderDrives(drives) {
@@ -191,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderDriveDetailsFolders(data.topFolders);
             }
         } catch (e) {
-            driveDetailsFoldersList.innerHTML = `<div class="text-center style="color:var(--accent-rose)">❌ មានបញ្ហាក្នុងការទាញយក Folders</div>`;
+            driveDetailsFoldersList.innerHTML = `<div class="text-center" style="color:var(--accent-rose)">❌ មានបញ្ហាក្នុងការទាញយក Folders</div>`;
         }
     }
 
@@ -221,11 +226,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnDetailSetSource) {
         btnDetailSetSource.addEventListener('click', () => {
             driveDetailsModal.classList.add('hidden');
-            if (univSourceDriveSelect) {
-                univSourceDriveSelect.value = currentDetailDrive;
-                loadUnivSourceDrive(currentDetailDrive);
-                showToast(`បានកំណត់ Drive ${currentDetailDrive} ជា Source Drive`, 'info');
+            // Check the corresponding source drive checkbox then reload
+            const driveCb = document.querySelector(`.source-drive-cb[data-drive="${currentDetailDrive}"]`);
+            if (driveCb) {
+                driveCb.checked = true;
+                loadSelectedSourceDrives();
             }
+            showToast(`បានកំណត់ Drive ${currentDetailDrive} ជា Source Drive`, 'info');
         });
     }
     if (btnDetailSetTarget) {
@@ -608,17 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
             confirmModalOverlay.classList.remove('hidden');
         });
     }
-            modalDesc.innerHTML = `
-                តើអ្នកពិតជាចង់ផ្ទេរ <strong>${items.length} Items</strong> ពី <strong>${sourceDrive}</strong> ទៅកាន់ <strong>${targetDrive}\\Migrated_Files</strong> មែនទេ?<br><br>
-                <div style="max-height:100px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; font-size:12px;">
-                    ${items.map(i => `<span class="closed-app-tag" style="margin:2px; display:inline-block;"><i class="fa-solid fa-file color-cyan"></i> ${i.folderName}</span>`).join('')}
-                </div>
-            `;
-            modalConfirmBtn.className = 'btn btn-emerald';
-            modalConfirmBtn.textContent = `យល់ព្រមផ្ទេរទាំង ${items.length} Items`;
-            confirmModalOverlay.classList.remove('hidden');
-        });
-    }
+
 
 
     navButtons.forEach(btn => {
@@ -669,133 +666,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 4500);
     }
 
-    // 3. Load Drives Info
-    async function loadDrives() {
-        try {
-            const res = await fetch('/api/drives');
-            const data = await res.json();
-            if (data.drives) {
-                drivesData = data.drives;
-                renderDrives(data.drives);
-            }
-        } catch (err) {
-            drivesGrid.innerHTML = `<div class="error-msg">មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Drives</div>`;
-        }
-    }
 
-    function renderDrives(drives) {
-        drivesGrid.innerHTML = drives.map(d => {
-            let driveClass = 'd-drive';
-            let fillClass = 'fill-d';
-            let badgeClass = 'badge-d';
 
-            if (d.drive.startsWith('C')) {
-                driveClass = 'c-drive';
-                fillClass = 'fill-c';
-                badgeClass = 'badge-c';
-            } else if (d.drive.startsWith('F')) {
-                driveClass = 'f-drive';
-                fillClass = 'fill-f';
-                badgeClass = 'badge-f';
-            }
 
-            return `
-                <div class="drive-card ${driveClass}">
-                    <div class="drive-header">
-                        <div class="drive-info">
-                            <h3><i class="fa-solid fa-hard-drive"></i> ${d.drive}</h3>
-                            <span>${d.name || 'Local Storage'}</span>
-                        </div>
-                        <span class="badge-drive ${badgeClass}">${d.usedPercent}% ប្រើប្រាស់</span>
-                    </div>
-
-                    <div class="progress-bar-bg">
-                        <div class="progress-bar-fill ${fillClass}" style="width: ${d.usedPercent}%"></div>
-                    </div>
-
-                    <div class="drive-meta">
-                        <span>ទំនេរ៖ <strong>${d.freeGB} GB</strong></span>
-                        <span>ទំហំសរុប៖ ${d.sizeGB} GB</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    // 4. Load User Folders in C:
-    async function loadUserFolders() {
-        try {
-            const res = await fetch('/api/user-folders');
-            const data = await res.json();
-            if (data.folders) {
-                renderUserFolders(data.folders);
-            }
-        } catch (err) {
-            userFoldersTbody.innerHTML = `<tr><td colspan="6" class="text-center">មានបញ្ហាក្នុងការទាញយកទិន្នន័យ Folders</td></tr>`;
-        }
-    }
-
-    function renderUserFolders(folders) {
-        const availableTargetDrives = drivesData.filter(d => !d.drive.startsWith('C')).map(d => d.drive);
-        
-        userFoldersTbody.innerHTML = folders.map(f => {
-            const defaultSelected = availableTargetDrives.find(d => d.startsWith('F')) || availableTargetDrives[0] || 'F:';
-
-            const optionsHtml = availableTargetDrives.map(drive => 
-                `<option value="${drive}" ${drive === defaultSelected ? 'selected' : ''}>${drive} (Drive ${drive.replace(':', '')})</option>`
-            ).join('');
-
-            return `
-                <tr>
-                    <td><strong><i class="fa-solid fa-folder-open color-cyan"></i> ${f.folder}</strong></td>
-                    <td class="text-sub">${f.path}</td>
-                    <td>${f.count.toLocaleString()} ឯកសារ</td>
-                    <td><strong class="color-cyan">${f.sizeGB > 1 ? f.sizeGB + ' GB' : f.sizeMB + ' MB'}</strong></td>
-                    <td>
-                        <select class="drive-select" id="select-${f.folder}" data-folder="${f.folder}">
-                            ${optionsHtml}
-                        </select>
-                    </td>
-                    <td>
-                        <button class="btn btn-cyan btn-move" id="btn-move-${f.folder}" data-folder="${f.folder}">
-                            <i class="fa-solid fa-arrow-right"></i> <span class="btn-text">ផ្ទេរទៅ ${defaultSelected}</span>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-
-        // Dropdown dynamic button text updater
-        document.querySelectorAll('.drive-select').forEach(selectElem => {
-            selectElem.addEventListener('change', () => {
-                const folderName = selectElem.getAttribute('data-folder');
-                const selectedDrive = selectElem.value;
-                const btnElem = document.getElementById(`btn-move-${folderName}`);
-                if (btnElem) {
-                    const btnTextSpan = btnElem.querySelector('.btn-text');
-                    if (btnTextSpan) {
-                        btnTextSpan.textContent = `ផ្ទេរទៅ ${selectedDrive}`;
-                    }
-                }
-            });
-        });
-
-        // Attach event listeners to Move buttons
-        document.querySelectorAll('.btn-move').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const folderName = btn.getAttribute('data-folder');
-                const selectElem = document.getElementById(`select-${folderName}`);
-                const targetDrive = selectElem ? selectElem.value : 'F:';
-
-                pendingTransfer = { folderName, targetDrive };
-                
-                // Show Custom Confirmation Modal
-                modalTitle.textContent = `បញ្ជាក់ការផ្ទេរ Folder "${folderName}"`;
-                modalDesc.innerHTML = `តើអ្នកពិតជាចង់ផ្ទេរឯកសារក្នុង <strong>${folderName}</strong> ពី Drive C ទៅកាន់ <strong>${targetDrive}</strong> មែនទេ?`;
-                confirmModalOverlay.classList.remove('hidden');
-            });
-        });
-    }
 
     modalCancelBtn.addEventListener('click', () => {
         confirmModalOverlay.classList.add('hidden');
@@ -939,7 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 transferLoadingOverlay.classList.add('hidden');
                 await loadDrives();
                 await loadUserFolders();
-                if (univSourceDriveSelect) loadUnivSourceDrive(univSourceDriveSelect.value);
+                loadSelectedSourceDrives();
             }
             return;
         }
@@ -1447,7 +1320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Load drives immediately; load folders once drivesData is ready
         loadDrives().then(() => {
             loadUserFolders();
-            loadUnivSourceDrive('C:');
+            loadSelectedSourceDrives();
         });
         scanTemp();
     }
