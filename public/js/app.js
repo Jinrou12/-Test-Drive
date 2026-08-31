@@ -122,6 +122,42 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSourceDriveCheckboxes(drives);
     }
 
+    // Render drive checkboxes into #source-drives-checkbox-group
+    function renderSourceDriveCheckboxes(drives) {
+        if (!sourceDrivesCheckboxGroup) return;
+
+        sourceDrivesCheckboxGroup.innerHTML = drives.map((d, i) => {
+            let badgeClass = d.drive.startsWith('C') ? 'badge-c' : d.drive.startsWith('F') ? 'badge-f' : 'badge-d';
+            const isDefaultChecked = i === 0 ? 'checked' : ''; // Default: first drive (usually C:) checked
+            const externalTag = d.isExternal ? ' 🔌' : '';
+            return `
+                <label style="display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+                              background:rgba(255,255,255,0.05); border:1px solid var(--border-color);
+                              border-radius:8px; padding:6px 12px; user-select:none; transition:background 0.2s;"
+                       onmouseover="this.style.background='rgba(6,182,212,0.1)'"
+                       onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                    <input type="checkbox" class="source-drive-cb" data-drive="${d.drive}"
+                           ${isDefaultChecked}
+                           style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent-cyan);"
+                           onchange="this.closest('label').style.border=this.checked?'1px solid var(--accent-cyan)':'1px solid var(--border-color)'">
+                    <span class="badge-drive ${badgeClass}" style="padding:2px 7px;font-size:11px;">${d.drive}</span>
+                    <span style="font-size:12px;font-weight:600;color:var(--text-main);">${d.name || 'Drive'}${externalTag}</span>
+                    <span style="font-size:11px;color:var(--text-muted);">${d.freeGB}GB free</span>
+                </label>
+            `;
+        }).join('');
+
+        // Highlight the default-checked drive labels
+        sourceDrivesCheckboxGroup.querySelectorAll('.source-drive-cb:checked').forEach(cb => {
+            cb.closest('label').style.border = '1px solid var(--accent-cyan)';
+        });
+
+        // Wire up change event: reload source list whenever checkbox selection changes
+        sourceDrivesCheckboxGroup.querySelectorAll('.source-drive-cb').forEach(cb => {
+            cb.addEventListener('change', () => loadSelectedSourceDrives());
+        });
+    }
+
     function renderDrives(drives) {
         drivesGrid.innerHTML = drives.map(d => {
             let driveClass = 'd-drive';
