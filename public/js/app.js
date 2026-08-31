@@ -10,9 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let transferProgressPollInterval = null;
     let currentTab = 'drives-tab';
 
-    // Universal Transfer State
+    // Universal Transfer & Queue State
     let univSourceItems = [];
     let currentUnivDrive = 'C:';
+    let transferQueue = []; // [{ id, sourceDrive, sourcePath, itemName, sizeBytes, sizeStr }]
 
     // DOM Elements
     const navButtons = document.querySelectorAll('.nav-btn');
@@ -52,6 +53,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const univSelectedCount = document.getElementById('univ-selected-count');
     const univSelectedSize = document.getElementById('univ-selected-size');
     const btnUnivTransfer = document.getElementById('btn-univ-transfer');
+
+    // Queue UI Elements
+    const btnAddToQueue = document.getElementById('btn-add-to-queue');
+    const queueCountBadge = document.getElementById('queue-count-badge');
+    const btnClearQueue = document.getElementById('btn-clear-queue');
+    const queueTbody = document.getElementById('queue-tbody');
+    const queueTotalItems = document.getElementById('queue-total-items');
+    const queueTotalSize = document.getElementById('queue-total-size');
+    const btnExecuteQueue = document.getElementById('btn-execute-queue');
 
     // Boost & Processes Elements
     const editorBoostBtn = document.getElementById('editor-boost-btn');
@@ -406,68 +416,154 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUnivSelectionState();
     }
 
-    function updateUnivSelectionState() {
-        const checkedCbs = document.querySelectorAll('.univ-cb:checked');
-        const count = checkedCbs.length;
-        let totalBytes = 0;
-
-        checkedCbs.forEach(cb => {
-            totalBytes += parseInt(cb.getAttribute('data-sizebytes') || '0', 10);
-        });
-
-        const sizeMB = (totalBytes / (1024 * 1024)).toFixed(1);
-        const sizeGB = (totalBytes / (1024 ** 3)).toFixed(2);
-        const sizeStr = parseFloat(sizeGB) > 1 ? `${sizeGB} GB` : `${sizeMB} MB`;
-
-        if (univSelectedCount) univSelectedCount.textContent = count;
-        if (univSelectedSize) univSelectedSize.textContent = sizeStr;
-
-        if (btnUnivTransfer) {
-            btnUnivTransfer.disabled = count === 0;
-            const target = univTargetDriveSelect ? univTargetDriveSelect.value : 'Target Drive';
-            btnUnivTransfer.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ផ្ទេរ ${count} Items ដែលបានជ្រើសទៅកាន់ ${target}`;
-        }
-    }
-
-    if (btnUnivSelectAll) {
-        btnUnivSelectAll.addEventListener('click', () => {
-            document.querySelectorAll('.univ-cb').forEach(cb => cb.checked = true);
-            updateUnivSelectionState();
-        });
-    }
-    if (btnUnivClearAll) {
-        btnUnivClearAll.addEventListener('click', () => {
-            document.querySelectorAll('.univ-cb').forEach(cb => cb.checked = false);
-            updateUnivSelectionState();
-        });
-    }
-
-    if (univTargetDriveSelect) {
-        univTargetDriveSelect.addEventListener('change', updateUnivSelectionState);
-    }
-
-    if (btnUnivTransfer) {
-        btnUnivTransfer.addEventListener('click', () => {
+    // ADD TO QUEUE HANDLER
+    if (btnAddToQueue) {
+        btnAddToQueue.addEventListener('click', () => {
             const checkedCbs = document.querySelectorAll('.univ-cb:checked');
-            if (checkedCbs.length === 0) return;
-
-            const sourceDrive = univSourceDriveSelect.value;
-            const targetDrive = univTargetDriveSelect.value;
-
-            if (sourceDrive === targetDrive) {
-                showToast(`❌ Source Drive និង Target Drive មិនអាចដូចគ្នា (${sourceDrive}) ទេ!`, 'error');
+            if (checkedCbs.length === 0) {
+                showToast('សូមជ្រើសរើស Folder/File យ៉ាងហោចណាស់ 1 ដើម្បីបន្ថែមចូល Queue', 'info');
                 return;
             }
 
-            const items = Array.from(checkedCbs).map(cb => ({
-                sourcePath: cb.getAttribute('data-path'),
-                folderName: cb.getAttribute('data-name')
+            const currentDrive = univSourceDriveSelect ? univSourceDriveSelect.value : 'C:';
+            let addedCount = 0;
+
+            checkedCbs.forEach(cb => {
+                const itemPath = cb.getAttribute('data-path');
+                const itemName = cb.getAttribute('data-name');
+                const sizeBytes = parseInt(cb.getAttribute('data-sizebytes') || '0', 10);
+
+                // Avoid duplicate entries in queue
+                if (!transferQueue.some(q => q.sourcePath === itemPath)) {
+                    const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(1);
+                    const sizeGB = (sizeBytes / (1024 ** 3)).toFixed(2);
+                    const sizeStr = parseFloat(sizeGB) > 1 ? `${sizeGB} GB` : `${sizeMB} MB`;
+
+                    transferQueue.push({
+                        id: Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                        sourceDrive: currentDrive,
+                        sourcePath: itemPath,
+                        itemName,
+                        sizeBytes,
+                        sizeStr
+                    });
+                    addedCount++;
+                }
+
+                cb.checked = false;
+            });
+
+            renderTransferQueue();
+            if (addedCount > 0) {
+                showToast(`✅ បានបន្ថែម ${addedCount} items ពី Drive ${currentDrive} ចូលក្នុង Queue!`, 'success');
+            } else {
+                showToast(`⚠️ Items ទាំងនេះមានក្នុង Queue រួចហើយ`, 'info');
+            }
+        });
+    }
+
+    function renderTransferQueue() {
+        if (!queueTbody) return;
+
+        if (transferQueue.length === 0) {
+            queueTbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-sub" style="padding: 16px;">
+                        មិនទាន់មាន Item ក្នុង Queue ឡើយ (សូមជ្រើសរើស Folder ក្នុង Source Drive រួចចុច "បន្ថែមចូល Queue")
+                    </td>
+                </tr>
+            `;
+            if (queueCountBadge) queueCountBadge.textContent = '0 items';
+            if (queueTotalItems) queueTotalItems.textContent = '0';
+            if (queueTotalSize) queueTotalSize.textContent = '0.0 MB';
+            if (btnExecuteQueue) btnExecuteQueue.disabled = true;
+            return;
+        }
+
+        let totalBytes = 0;
+        queueTbody.innerHTML = transferQueue.map(item => {
+            totalBytes += item.sizeBytes;
+            let badgeClass = item.sourceDrive.startsWith('C') ? 'badge-c' : item.sourceDrive.startsWith('F') ? 'badge-f' : 'badge-d';
+
+            return `
+                <tr>
+                    <td><span class="badge-drive ${badgeClass}" style="padding:3px 8px; font-size:11px;">Drive ${item.sourceDrive}</span></td>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-folder color-cyan"></i> ${item.itemName}
+                        </div>
+                        <div class="text-sub" style="font-size:11px;">${item.sourcePath}</div>
+                    </td>
+                    <td><strong style="color: var(--accent-emerald);">${item.sizeStr}</strong></td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-secondary btn-remove-queue-item" data-id="${item.id}" style="padding: 4px 8px; font-size: 11px;" title="លុបចេញពី Queue">
+                            <i class="fa-solid fa-xmark color-rose"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        document.querySelectorAll('.btn-remove-queue-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
+                transferQueue = transferQueue.filter(q => q.id !== id);
+                renderTransferQueue();
+            });
+        });
+
+        const totalMB = (totalBytes / (1024 * 1024)).toFixed(1);
+        const totalGB = (totalBytes / (1024 ** 3)).toFixed(2);
+        const totalStr = parseFloat(totalGB) > 1 ? `${totalGB} GB` : `${totalMB} MB`;
+
+        if (queueCountBadge) queueCountBadge.textContent = `${transferQueue.length} items`;
+        if (queueTotalItems) queueTotalItems.textContent = transferQueue.length;
+        if (queueTotalSize) queueTotalSize.textContent = totalStr;
+
+        if (btnExecuteQueue) {
+            btnExecuteQueue.disabled = false;
+            const targetDrive = univTargetDriveSelect ? univTargetDriveSelect.value : 'Target Drive';
+            btnExecuteQueue.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ផ្ទេរ ${transferQueue.length} Items ក្នុង Queue ទៅកាន់ ${targetDrive}`;
+        }
+    }
+
+    if (btnClearQueue) {
+        btnClearQueue.addEventListener('click', () => {
+            transferQueue = [];
+            renderTransferQueue();
+            showToast('បានសម្អាតបញ្ជី Queue រួចរាល់', 'info');
+        });
+    }
+
+    if (btnExecuteQueue) {
+        btnExecuteQueue.addEventListener('click', () => {
+            if (transferQueue.length === 0) return;
+
+            const targetDrive = univTargetDriveSelect ? univTargetDriveSelect.value : 'F:';
+            const items = transferQueue.map(q => ({
+                sourcePath: q.sourcePath,
+                folderName: q.itemName,
+                sourceDrive: q.sourceDrive
             }));
+
+            // Group drives breakdown for confirmation text
+            const uniqueDrives = Array.from(new Set(transferQueue.map(q => q.sourceDrive)));
 
             pendingBatchTransfer = { items, targetDrive };
             pendingTransfer = null;
 
-            modalTitle.innerHTML = `<span style="color:var(--accent-cyan)"><i class="fa-solid fa-paper-plane"></i> បញ្ជាក់ការផ្ទេរ ${items.length} Items ពី ${sourceDrive} ទៅ ${targetDrive}</span>`;
+            modalTitle.innerHTML = `<span style="color:var(--accent-cyan)"><i class="fa-solid fa-paper-plane"></i> បញ្ជាក់ការផ្ទេរ ${items.length} Items ទៅកាន់ ${targetDrive}</span>`;
+            modalDesc.innerHTML = `
+                តើអ្នកពិតជាចង់ផ្ទេរ <strong>${items.length} Items</strong> មកពី <strong>Drives (${uniqueDrives.join(', ')})</strong> ទៅកាន់ Target Drive <strong>${targetDrive}\\Migrated_Files</strong> មែនទេ?<br><br>
+                <div style="max-height:110px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; font-size:12px;">
+                    ${items.map(i => `<span class="closed-app-tag" style="margin:2px; display:inline-block;"><i class="fa-solid fa-hard-drive color-cyan"></i> [Drive ${i.sourceDrive}] ${i.folderName}</span>`).join('')}
+                </div>
+            `;
+            modalConfirmBtn.className = 'btn btn-emerald';
+            modalConfirmBtn.textContent = `យល់ព្រមផ្ទេរទាំង ${items.length} Items ចូល ${targetDrive}`;
+            confirmModalOverlay.classList.remove('hidden');
+        });
+    }
             modalDesc.innerHTML = `
                 តើអ្នកពិតជាចង់ផ្ទេរ <strong>${items.length} Items</strong> ពី <strong>${sourceDrive}</strong> ទៅកាន់ <strong>${targetDrive}\\Migrated_Files</strong> មែនទេ?<br><br>
                 <div style="max-height:100px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; font-size:12px;">

@@ -70,7 +70,7 @@ function getFolderMetrics(dirPath, maxDepth = 4, currentDepth = 0) {
 
 // ── 1. GET /api/drives ────────────────────────────────────────────────────
 app.get('/api/drives', async (req, res) => {
-    const psCmd = `Get-CimInstance Win32_LogicalDisk | Where-Object DriveType -eq 3 | Select-Object DeviceID, VolumeName, FileSystem, DriveType, Size, FreeSpace | ConvertTo-Json`;
+    const psCmd = `Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DriveType -in 2,3,4 } | Select-Object DeviceID, VolumeName, FileSystem, DriveType, Size, FreeSpace | ConvertTo-Json`;
     const result = await runPowerShell(psCmd);
 
     if (!result.success) {
@@ -91,10 +91,18 @@ app.get('/api/drives', async (req, res) => {
             const usedGB  = parseFloat((usedBytes  / (1024 ** 3)).toFixed(1));
             const usedPercent = sizeGB > 0 ? Math.min(100, Math.round((usedGB / sizeGB) * 100)) : 0;
 
+            const isExternal = d.DriveType === 2 || d.DriveType === 4;
+            let typeLabel = 'Local Disk';
+            if (d.DriveType === 2) typeLabel = 'External / USB Drive';
+            if (d.DriveType === 4) typeLabel = 'Network Drive';
+
             return { 
                 drive: d.DeviceID, 
-                name: d.VolumeName || 'Local Disk', 
+                name: d.VolumeName || (isExternal ? 'External Drive' : 'Local Disk'), 
                 fileSystem: d.FileSystem || 'NTFS',
+                driveType: d.DriveType,
+                isExternal,
+                typeLabel,
                 sizeGB, 
                 freeGB, 
                 usedGB, 
