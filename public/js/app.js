@@ -1796,6 +1796,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (tabId === 'processes-tab') pageTitle.textContent = 'គ្រប់គ្រង Tasks & Processes ទាំងអស់';
                 else if (tabId === 'portable-tab') pageTitle.textContent = 'ពន្លា & បំប្លែង Portable Apps (.exe)';
                 else if (tabId === 'shell-folders-tab') pageTitle.textContent = 'បង្វែរទីតាំង Downloads & Save Files';
+                else if (tabId === 'apps-manager-tab') pageTitle.textContent = 'គ្រប់គ្រង & លុប App ទាំងអស់ក្នុង PC';
             }
 
             if (tabId === 'processes-tab') {
@@ -1804,6 +1805,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadPortableScan();
             } else if (tabId === 'shell-folders-tab') {
                 loadShellFolders();
+            } else if (tabId === 'apps-manager-tab') {
+                loadAllAppsManager();
             }
         });
     });
@@ -2040,6 +2043,258 @@ document.addEventListener('DOMContentLoaded', () => {
             loadShellFolders();
             showToast('🔄 Refreshing folder locations...', 'info');
         });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ── UNIVERSAL APP MANAGER MODULE ─────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════════
+    let allAppsData = [];
+    let activeAppCategory = 'all';
+    let activeAppFrequency = 'all';
+
+    const allAppsTbody = document.getElementById('all-apps-tbody');
+    const allAppsTotalCount = document.getElementById('all-apps-total-count');
+    const appsSearchInput = document.getElementById('apps-search-input');
+    const appsSelectAllCb = document.getElementById('apps-select-all-cb');
+    const btnBatchDeleteApps = document.getElementById('btn-batch-delete-apps');
+    const batchAppsSelectedCount = document.getElementById('batch-apps-selected-count');
+
+    // Category Filter Buttons
+    const catButtons = document.querySelectorAll('#apps-cat-filter-group .proc-filter-btn');
+    catButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            catButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeAppCategory = btn.getAttribute('data-cat') || 'all';
+            renderAllApps();
+        });
+    });
+
+    // Frequency Filter Buttons
+    const freqButtons = document.querySelectorAll('.apps-freq-btn');
+    freqButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            freqButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeAppFrequency = btn.getAttribute('data-freq') || 'all';
+            renderAllApps();
+        });
+    });
+
+    if (appsSearchInput) {
+        appsSearchInput.addEventListener('input', () => renderAllApps());
+    }
+
+    async function loadAllAppsManager() {
+        if (!allAppsTbody) return;
+        allAppsTbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន Apps &amp; Files ទាំងអស់ក្នុង PC...</td>
+            </tr>
+        `;
+
+        try {
+            const res = await fetch('/api/apps/scan-all');
+            const data = await res.json();
+            if (data.apps) {
+                allAppsData = data.apps;
+                renderAllApps();
+            }
+        } catch (err) {
+            allAppsTbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="error-msg">❌ បរាជ័យក្នុងការស្កែន Apps: ${err.message}</td>
+                </tr>
+            `;
+        }
+    }
+
+    function renderAllApps() {
+        if (!allAppsTbody) return;
+        const query = appsSearchInput ? appsSearchInput.value.toLowerCase().trim() : '';
+
+        // Category counters
+        const counts = {
+            all: allAppsData.length,
+            portable_extracted: allAppsData.filter(a => a.category === 'portable_extracted').length,
+            installer_raw: allAppsData.filter(a => a.category === 'installer_raw').length,
+            installed_app: allAppsData.filter(a => a.category === 'installed_app').length,
+            preinstalled_oem: allAppsData.filter(a => a.category === 'preinstalled_oem').length
+        };
+
+        const countAll = document.getElementById('cat-count-all');
+        const countPortable = document.getElementById('cat-count-portable');
+        const countInstaller = document.getElementById('cat-count-installer');
+        const countInstalled = document.getElementById('cat-count-installed');
+        const countOem = document.getElementById('cat-count-oem');
+
+        if (countAll) countAll.textContent = counts.all;
+        if (countPortable) countPortable.textContent = counts.portable_extracted;
+        if (countInstaller) countInstaller.textContent = counts.installer_raw;
+        if (countInstalled) countInstalled.textContent = counts.installed_app;
+        if (countOem) countOem.textContent = counts.preinstalled_oem;
+        if (allAppsTotalCount) allAppsTotalCount.textContent = counts.all;
+
+        // Filter data
+        const filtered = allAppsData.filter(app => {
+            // Category Filter
+            if (activeAppCategory !== 'all' && app.category !== activeAppCategory) return false;
+            // Frequency Filter
+            if (activeAppFrequency !== 'all' && app.usageFreq !== activeAppFrequency) return false;
+            // Search Query
+            if (query) {
+                const matchName = app.name.toLowerCase().includes(query);
+                const matchPub = app.publisher.toLowerCase().includes(query);
+                const matchPath = app.path.toLowerCase().includes(query);
+                if (!matchName && !matchPub && !matchPath) return false;
+            }
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            allAppsTbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-sub py-4">គ្មាន App ត្រូវនឹង Filter ឬពាក្យស្វែងរកឡើយ</td>
+                </tr>
+            `;
+            updateBatchAppsState();
+            return;
+        }
+
+        allAppsTbody.innerHTML = filtered.map(app => {
+            let catBadgeClass = 'badge-cat-portable';
+            if (app.category === 'installer_raw') catBadgeClass = 'badge-cat-installer';
+            if (app.category === 'installed_app') catBadgeClass = 'badge-cat-installed';
+            if (app.category === 'preinstalled_oem') catBadgeClass = 'badge-cat-oem';
+
+            let freqBadgeClass = 'freq-never';
+            if (app.usageFreq === 'frequent') freqBadgeClass = 'freq-frequent';
+            if (app.usageFreq === 'occasional') freqBadgeClass = 'freq-occasional';
+
+            const sizeStr = app.sizeGB > 1 ? `${app.sizeGB} GB` : (app.sizeMB > 0 ? `${app.sizeMB} MB` : 'N/A');
+
+            return `
+                <tr>
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="app-item-cb" data-id="${app.id}" style="width:16px; height:16px; cursor:pointer;">
+                    </td>
+                    <td>
+                        <strong>${app.name}</strong><br>
+                        <span class="text-sub" style="font-size:11px;">Publisher: ${app.publisher} | v${app.version}</span>
+                    </td>
+                    <td>
+                        <span class="badge-cat ${catBadgeClass}">${app.categoryLabel}</span>
+                    </td>
+                    <td>
+                        <span class="badge-freq ${freqBadgeClass}">${app.usageLabel}</span>
+                    </td>
+                    <td>
+                        <strong class="color-cyan">${sizeStr}</strong>
+                    </td>
+                    <td>
+                        <div class="folder-card-path" style="max-width: 220px;" title="${app.path}">${app.path || app.uninstallString || 'System Package'}</div>
+                    </td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-rose btn-uninstall-app" data-id="${app.id}" style="padding: 4px 10px; font-size: 11px; font-weight: 700;">
+                            <i class="fa-solid fa-trash-can"></i> លុបដាច់ស្រេច
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Attach single uninstall buttons
+        document.querySelectorAll('.btn-uninstall-app').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const appId = btn.getAttribute('data-id');
+                const targetApp = allAppsData.find(a => a.id === appId);
+                if (!targetApp) return;
+
+                showConfirmModal(
+                    `បញ្ជាក់ការលុបដាច់ស្រេច "${targetApp.name}"`,
+                    `តើអ្នកពិតជាចង់លុប <strong>${targetApp.name}</strong> (${targetApp.categoryLabel}) ចោលដាច់ស្រេចមែនទេ?<br><span style="color:var(--accent-rose); font-size:12px;">⚠️ មិនអាច Restore វិញបានឡើយ!</span>`,
+                    () => executeSingleAppDelete(targetApp)
+                );
+            });
+        });
+
+        // Attach Checkbox listeners
+        const appCbs = document.querySelectorAll('.app-item-cb');
+        appCbs.forEach(cb => cb.addEventListener('change', updateBatchAppsState));
+
+        if (appsSelectAllCb) {
+            appsSelectAllCb.checked = false;
+            appsSelectAllCb.onclick = (e) => {
+                appCbs.forEach(cb => cb.checked = e.target.checked);
+                updateBatchAppsState();
+            };
+        }
+
+        updateBatchAppsState();
+    }
+
+    function updateBatchAppsState() {
+        if (!btnBatchDeleteApps) return;
+        const checked = document.querySelectorAll('.app-item-cb:checked');
+        const count = checked.length;
+        btnBatchDeleteApps.disabled = count === 0;
+        if (batchAppsSelectedCount) batchAppsSelectedCount.textContent = count;
+    }
+
+    if (btnBatchDeleteApps) {
+        btnBatchDeleteApps.addEventListener('click', () => {
+            const checked = document.querySelectorAll('.app-item-cb:checked');
+            if (checked.length === 0) return;
+
+            const selectedIds = Array.from(checked).map(cb => cb.getAttribute('data-id'));
+            const selectedApps = allAppsData.filter(a => selectedIds.includes(a.id));
+
+            showConfirmModal(
+                `បញ្ជាក់ការលុបដាច់ស្រេច ${selectedApps.length} Apps`,
+                `តើអ្នកពិតជាចង់លុប <strong>${selectedApps.length} Apps</strong> ដែលបានជ្រើសរើសចោលដាច់ស្រេចមែនទេ?<br><span style="color:var(--accent-rose); font-size:12px;">⚠️ មិនអាច Restore វិញបានឡើយ!</span>`,
+                () => executeBatchAppsDelete(selectedApps)
+            );
+        });
+    }
+
+    async function executeSingleAppDelete(app) {
+        try {
+            const res = await fetch('/api/apps/uninstall-permanent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(app)
+            });
+            const result = await res.json();
+            if (result.success) {
+                showToast(`✅ លុបដាច់ស្រេច "${app.name}" ជោគជ័យ!`, 'success');
+                allAppsData = allAppsData.filter(a => a.id !== app.id);
+                renderAllApps();
+            } else {
+                showToast(`❌ បរាជ័យក្នុងការលុប: ${result.error}`, 'error');
+            }
+        } catch (err) {
+            showToast('❌ មានបញ្ហាក្នុងការលុប App', 'error');
+        }
+    }
+
+    async function executeBatchAppsDelete(appsList) {
+        let deleted = 0;
+        for (const app of appsList) {
+            try {
+                const res = await fetch('/api/apps/uninstall-permanent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(app)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    deleted++;
+                    allAppsData = allAppsData.filter(a => a.id !== app.id);
+                }
+            } catch (_) {}
+        }
+        showToast(`✅ លុបបានជោគជ័យ ${deleted}/${appsList.length} Apps!`, 'success');
+        renderAllApps();
     }
 
     // Non-blocking Parallel Initial Load (Instant UI rendering)

@@ -63,6 +63,13 @@
                         <span class="nav-label-en">Relocate Folders</span>
                     </span>
                 </button>
+                <button class="nav-btn" data-tab="apps-manager-tab">
+                    <span class="nav-icon"><i class="fa-solid fa-shapes"></i></span>
+                    <span class="nav-label">
+                        <span class="nav-label-km">គ្រប់គ្រង &amp; លុប App ទាំងអស់</span>
+                        <span class="nav-label-en">Universal App Manager</span>
+                    </span>
+                </button>
             </nav>
 
             <div class="system-status-widget">
@@ -617,6 +624,89 @@
                                 <p>ឥឡូវ Chrome, Photoshop, Word, Excel នឹង Save &amp; Download ចូល <strong id="shell-res-drive" class="color-cyan">D:\UserFiles\...</strong> ដោយស្វ័យប្រវត្តិ!</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!-- TAB 6: UNIVERSAL APP & FILE MANAGER                           -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <section id="apps-manager-tab" class="tab-content">
+                <div class="section-label"><i class="fa-solid fa-shapes"></i> គ្រប់គ្រង &amp; លុប App ទាំងអស់ក្នុង PC (Universal App &amp; File Manager)</div>
+
+                <div class="card table-card">
+                    <div class="card-header flex-header">
+                        <div>
+                            <h3 style="color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-boxes-packing"></i> បញ្ជី Apps, Installers &amp; Bloatware ទាំងអស់ (<span id="all-apps-total-count">0</span> items)
+                            </h3>
+                            <p>ស្កែន និងលុបដាច់ស្រេចនូវ Portable Apps, Setup Files, Installed Desktop Apps &amp; Pre-installed Windows Bloatware</p>
+                        </div>
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="apps-search-input" class="form-input" placeholder="🔍 ស្វែងរក App តាមឈ្មោះ...">
+                        </div>
+                    </div>
+
+                    <!-- Category & Frequency Filters Toolbar -->
+                    <div class="filter-controls-bar" style="flex-direction: column; gap: 12px; align-items: stretch; background: rgba(0,0,0,0.25); border-radius: var(--radius-md); padding: 12px 16px;">
+                        <!-- Category Sub-Tabs -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                            <div class="filter-tabs-group" id="apps-cat-filter-group">
+                                <button class="proc-filter-btn active" data-cat="all">
+                                    <i class="fa-solid fa-layer-group"></i> ទាំងអស់ (<span id="cat-count-all">0</span>)
+                                </button>
+                                <button class="proc-filter-btn" data-cat="portable_extracted">
+                                    <i class="fa-solid fa-box-open color-cyan"></i> Portable Extracted (<span id="cat-count-portable">0</span>)
+                                </button>
+                                <button class="proc-filter-btn" data-cat="installer_raw">
+                                    <i class="fa-solid fa-download color-blue"></i> Raw Setup Files (<span id="cat-count-installer">0</span>)
+                                </button>
+                                <button class="proc-filter-btn" data-cat="installed_app">
+                                    <i class="fa-solid fa-laptop-code color-emerald"></i> Installed Apps (<span id="cat-count-installed">0</span>)
+                                </button>
+                                <button class="proc-filter-btn" data-cat="preinstalled_oem">
+                                    <i class="fa-solid fa-shield-halved color-red"></i> Pre-installed OEM (<span id="cat-count-oem">0</span>)
+                                </button>
+                            </div>
+
+                            <button id="btn-batch-delete-apps" class="btn btn-rose" disabled style="padding: 6px 14px; font-size: 13px; font-weight: 700;">
+                                <i class="fa-solid fa-trash-can"></i> លុបដាច់ស្រេចដែលបានជ្រើស (<span id="batch-apps-selected-count">0</span>)
+                            </button>
+                        </div>
+
+                        <!-- Usage Frequency Filters -->
+                        <div style="display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--border-subtle); padding-top: 10px; flex-wrap: wrap;">
+                            <span class="filter-group-label"><i class="fa-solid fa-clock-rotate-left"></i> កម្រិតប្រើប្រាស់ (Frequency):</span>
+                            <button class="btn btn-secondary apps-freq-btn active" data-freq="all" style="padding: 4px 12px; font-size: 12px;">🌐 ទាំងអស់</button>
+                            <button class="btn btn-secondary apps-freq-btn" data-freq="frequent" style="padding: 4px 12px; font-size: 12px;">🔥 ឧស្សាហ៍ប្រើ (7d)</button>
+                            <button class="btn btn-secondary apps-freq-btn" data-freq="occasional" style="padding: 4px 12px; font-size: 12px;">🟡 ប្រើម្ដងម្កាល (60d)</button>
+                            <button class="btn btn-emerald apps-freq-btn" data-freq="never_used" style="padding: 4px 14px; font-size: 12px; font-weight: 700;">🔴 មិនដែលប្រើសោះ (60d+)</button>
+                        </div>
+                    </div>
+
+                    <!-- Apps Data Table -->
+                    <div class="table-responsive">
+                        <table class="data-table" style="font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px; text-align: center;">
+                                        <input type="checkbox" id="apps-select-all-cb" style="width:16px; height:16px; cursor:pointer;" title="ជ្រើសរើសទាំងអស់">
+                                    </th>
+                                    <th>ឈ្មោះ App &amp; Publisher</th>
+                                    <th>ប្រភេទ (Category)</th>
+                                    <th>កម្រិតប្រើប្រាស់ (Usage)</th>
+                                    <th>ទំហំ (Size)</th>
+                                    <th>ទីតាំង Path / Info</th>
+                                    <th style="text-align: center; width: 120px;">លុបដាច់ស្រេច</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-apps-tbody">
+                                <tr>
+                                    <td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន Apps ទាំងអស់ក្នុង PC...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>

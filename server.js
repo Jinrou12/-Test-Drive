@@ -1180,6 +1180,300 @@ app.post('/api/shell-folders/relocate', async (req, res) => {
 });
 
 
+// ── 11A. GET /api/apps/scan-all ──────────────────────────────────────────
+app.get('/api/apps/scan-all', async (req, res) => {
+    const userProfile = process.env.USERPROFILE || 'C:\\Users\\Default';
+
+    // PowerShell script to query Registry Installed Apps & AppX Pre-installed OEM Bloatware
+    const psScript = `
+        $apps = @()
+
+        # 1. Registry Installed Apps (HKLM & HKCU, 64-bit and 32-bit)
+        $regKeys = @(
+            "HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*",
+            "HKLM:\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*",
+            "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*"
+        )
+
+        foreach ($key in $regKeys) {
+            Get-ItemProperty $key -ErrorAction SilentlyContinue | ForEach-Object {
+                if ($_.DisplayName -and -not $_.SystemComponent -and $_.UninstallString) {
+                    $installDate = $_.InstallDate
+                    $displayVersion = $_.DisplayVersion
+                    $publisher = $_.Publisher
+                    $uninstallStr = $_.UninstallString
+                    $installLocation = $_.InstallLocation
+
+                    $apps += [PSCustomObject]@{
+                        Name = $_.DisplayName
+                        Type = "installed_app"
+                        Version = $displayVersion
+                        Publisher = $publisher
+                        UninstallString = $uninstallStr
+                        Path = $installLocation
+                        InstallDate = $installDate
+                    }
+                }
+            }
+        }
+
+        # 2. Pre-installed Windows OEM Apps / Bloatware (AppX Packages)
+        Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | ForEach-Object {
+            if (-not $_.IsFramework -and $_.NonRemovable -ne $true -and $_.SignatureKind -ne "System") {
+                $apps += [PSCustomObject]@{
+                    Name = $_.Name
+                    Type = "preinstalled_oem"
+                    Version = $_.Version
+                    Publisher = $_.PublisherId
+                    PackageFullName = $_.PackageFullName
+                    Path = $_.InstallLocation
+                }
+            }
+        }
+
+        $apps | ConvertTo-Json -Depth 2
+    `;
+
+    const psResult = await runPowerShell(psScript);
+    let regAndOemApps = [];
+    if (psResult.success && psResult.stdout) {
+        try {
+            regAndOemApps = JSON.parse(psResult.stdout);
+            if (!Array.isArray(regAndOemApps)) regAndOemApps = [regAndOemApps];
+        } catch (_) {}
+    }
+
+    const allAppsList = [];
+    const seenNames = new Set();
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    // Process Registry & OEM apps
+    for (const app of regAndOemApps) {
+        if (!app.Name || seenNames.has(app.Name.toLowerCase())) continue;
+        seenNames.add(app.Name.toLowerCase());
+
+        let lastAccessMs = now - (90 * oneDay); // default 90 days if unknown
+        let sizeBytes = 0;
+
+        if (app.Path && fs.existsSync(app.Path)) {
+            try {
+                const stat = fs.statSync(app.Path);
+                lastAccessMs = stat.atimeMs || stat.mtimeMs || stat.ctimeMs;
+                if (stat.isDirectory()) {
+                    const metrics = getFolderMetrics(app.Path, 2);
+                    sizeBytes = metrics.totalSize;
+                } else {
+                    sizeBytes = stat.size;
+                }
+            } catch (_) {}
+        }
+
+        const daysInactive = Math.floor((now - lastAccessMs) / oneDay);
+        let usageFreq = 'never_used';
+        let usageLabel = '🔴 មិនដែលប្រើសោះ';
+        if (daysInactive <= 7) {
+            usageFreq = 'frequent';
+            usageLabel = '🔥 ឧស្សាហ៍ប្រើ (7d)';
+        } else if (daysInactive <= 60) {
+            usageFreq = 'occasional';
+            usageLabel = '🟡 ប្រើម្ដងម្កាល (60d)';
+        }
+
+        allAppsList.push({
+            id: 'app_' + Math.random().toString(36).substring(2, 9),
+            name: app.Name,
+            category: app.Type, // 'installed_app' or 'preinstalled_oem'
+            categoryLabel: app.Type === 'installed_app' ? '💻 Installed App' : '🛡️ Pre-installed OEM',
+            version: app.Version || 'N/A',
+            publisher: app.Publisher || 'Windows/OEM',
+            path: app.Path || '',
+            uninstallString: app.UninstallString || '',
+            packageFullName: app.PackageFullName || '',
+            sizeBytes,
+            sizeMB: parseFloat((sizeBytes / (1024 * 1024)).toFixed(1)),
+            sizeGB: parseFloat((sizeBytes / (1024 ** 3)).toFixed(2)),
+            daysInactive,
+            usageFreq,
+            usageLabel
+        });
+    }
+
+    // 3. Scan Extracted Portable Apps & 4. Raw Setup Executables
+    const scanFolders = [
+        path.join(userProfile, 'Downloads'),
+        path.join(userProfile, 'Desktop'),
+        'D:\\ExtractedApps',
+        'D:\\UserFiles\\Apps',
+        'D:\\Downloads',
+        'F:\\ExtractedApps',
+        'F:\\UserFiles\\Apps',
+        'F:\\Downloads'
+    ];
+
+    function scanFilesAndFolders(dir, depth = 0) {
+        if (depth > 2 || !fs.existsSync(dir)) return;
+        try {
+            const items = fs.readdirSync(dir, { withFileTypes: true });
+            for (const item of items) {
+                if (item.name.startsWith('$') || item.name === 'System Volume Information' || item.name === 'Windows') continue;
+                const fullPath = path.join(dir, item.name);
+
+                if (item.isDirectory()) {
+                    // Check if it's an extracted portable app folder (contains main exe)
+                    try {
+                        const subFiles = fs.readdirSync(fullPath);
+                        const hasExe = subFiles.some(f => f.toLowerCase().endsWith('.exe'));
+                        if (hasExe) {
+                            const stat = fs.statSync(fullPath);
+                            const metrics = getFolderMetrics(fullPath, 2);
+                            const lastAccessMs = stat.atimeMs || stat.mtimeMs || stat.ctimeMs;
+                            const daysInactive = Math.floor((now - lastAccessMs) / oneDay);
+
+                            let usageFreq = 'never_used';
+                            let usageLabel = '🔴 មិនដែលប្រើសោះ';
+                            if (daysInactive <= 7) {
+                                usageFreq = 'frequent';
+                                usageLabel = '🔥 ឧស្សាហ៍ប្រើ (7d)';
+                            } else if (daysInactive <= 60) {
+                                usageFreq = 'occasional';
+                                usageLabel = '🟡 ប្រើម្ដងម្កាល (60d)';
+                            }
+
+                            allAppsList.push({
+                                id: 'app_' + Math.random().toString(36).substring(2, 9),
+                                name: item.name,
+                                category: 'portable_extracted',
+                                categoryLabel: '📦 Portable Extracted',
+                                version: 'Portable',
+                                publisher: 'Portable App',
+                                path: fullPath,
+                                uninstallString: '',
+                                packageFullName: '',
+                                sizeBytes: metrics.totalSize,
+                                sizeMB: parseFloat((metrics.totalSize / (1024 * 1024)).toFixed(1)),
+                                sizeGB: parseFloat((metrics.totalSize / (1024 ** 3)).toFixed(2)),
+                                daysInactive,
+                                usageFreq,
+                                usageLabel
+                            });
+                            continue; // Skip scanning deeper inside app directory
+                        }
+                    } catch (_) {}
+
+                    scanFilesAndFolders(fullPath, depth + 1);
+                } else if (item.isFile() && (item.name.toLowerCase().endsWith('.exe') || item.name.toLowerCase().endsWith('.msi'))) {
+                    const lowerName = item.name.toLowerCase();
+                    if (lowerName.startsWith('unins') || lowerName.includes('uninstall')) continue;
+
+                    try {
+                        const stat = fs.statSync(fullPath);
+                        if (stat.size < 500 * 1024) continue; // skip tiny helpers < 500KB
+
+                        const lastAccessMs = stat.atimeMs || stat.mtimeMs || stat.ctimeMs;
+                        const daysInactive = Math.floor((now - lastAccessMs) / oneDay);
+
+                        let usageFreq = 'never_used';
+                        let usageLabel = '🔴 មិនដែលប្រើសោះ';
+                        if (daysInactive <= 7) {
+                            usageFreq = 'frequent';
+                            usageLabel = '🔥 ឧស្សាហ៍ប្រើ (7d)';
+                        } else if (daysInactive <= 60) {
+                            usageFreq = 'occasional';
+                            usageLabel = '🟡 ប្រើម្ដងម្កាល (60d)';
+                        }
+
+                        allAppsList.push({
+                            id: 'app_' + Math.random().toString(36).substring(2, 9),
+                            name: item.name,
+                            category: 'installer_raw',
+                            categoryLabel: '📥 Raw Setup Installer',
+                            version: 'Setup File',
+                            publisher: 'Installer File',
+                            path: fullPath,
+                            uninstallString: '',
+                            packageFullName: '',
+                            sizeBytes: stat.size,
+                            sizeMB: parseFloat((stat.size / (1024 * 1024)).toFixed(1)),
+                            sizeGB: parseFloat((stat.size / (1024 ** 3)).toFixed(2)),
+                            daysInactive,
+                            usageFreq,
+                            usageLabel
+                        });
+                    } catch (_) {}
+                }
+            }
+        } catch (_) {}
+    }
+
+    for (const folder of scanFolders) {
+        scanFilesAndFolders(folder, 0);
+    }
+
+    // Sort: Largest footprint first
+    allAppsList.sort((a, b) => b.sizeBytes - a.sizeBytes);
+
+    res.json({
+        success: true,
+        count: allAppsList.length,
+        apps: allAppsList
+    });
+});
+
+// ── 11B. POST /api/apps/uninstall-permanent ─────────────────────────────
+app.post('/api/apps/uninstall-permanent', async (req, res) => {
+    const { appName, category, path: appPath, uninstallString, packageFullName } = req.body;
+
+    if (!appName) {
+        return res.status(400).json({ error: 'AppName is required' });
+    }
+
+    try {
+        if (category === 'portable_extracted' || category === 'installer_raw') {
+            // Direct clean removal of folder or file
+            if (appPath && fs.existsSync(appPath)) {
+                try {
+                    fs.rmSync(appPath, { recursive: true, force: true });
+                } catch (e) {
+                    // Fallback to PowerShell Remove-Item
+                    await runPowerShell(`Remove-Item -LiteralPath "${appPath.replace(/"/g, '`"')}" -Recurse -Force -ErrorAction SilentlyContinue`);
+                }
+            }
+            return res.json({ success: true, message: `Permanently deleted ${appName}` });
+        }
+
+        if (category === 'preinstalled_oem') {
+            if (!packageFullName) {
+                return res.status(400).json({ error: 'PackageFullName required for OEM app removal' });
+            }
+            const psCmd = `Remove-AppxPackage -Package "${packageFullName}" -AllUsers -ErrorAction SilentlyContinue`;
+            const result = await runPowerShell(psCmd);
+            return res.json({ success: true, message: `Uninstalled Windows OEM App ${appName}` });
+        }
+
+        if (category === 'installed_app') {
+            if (uninstallString) {
+                let cmd = uninstallString;
+                // Add quiet flags if possible
+                if (cmd.toLowerCase().includes('msiexec')) {
+                    cmd = cmd.replace(/\/i/i, '/x') + ' /qn /norestart';
+                } else if (!cmd.includes('/S') && !cmd.includes('/silent') && !cmd.includes('/quiet')) {
+                    cmd += ' /S /quiet';
+                }
+                await runPowerShell(`Start-Process -FilePath cmd.exe -ArgumentList '/c', "${cmd.replace(/"/g, '`"')}" -WindowStyle Hidden -Wait -ErrorAction SilentlyContinue`);
+            } else if (appPath && fs.existsSync(appPath)) {
+                fs.rmSync(appPath, { recursive: true, force: true });
+            }
+            return res.json({ success: true, message: `Permanently uninstalled ${appName}` });
+        }
+
+        res.status(400).json({ error: 'Unknown app category' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+
 // ── Start server function ────────────────────────────────────────────────
 function startEmbeddedServer(port = PORT) {
     return new Promise((resolve) => {
