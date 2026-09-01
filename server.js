@@ -763,36 +763,81 @@ app.post('/api/boost-coder', async (req, res) => {
 // ── 9A. GET /api/portable/scan ───────────────────────────────────────────
 app.get('/api/portable/scan', async (req, res) => {
     const userProfile = process.env.USERPROFILE || 'C:\\Users\\Default';
-    const scanDirs = [
+    const drives = ['C:', 'D:', 'F:', 'E:', 'G:'];
+
+    const baseScanDirs = [
+        path.join(userProfile, 'Desktop'),
         path.join(userProfile, 'Downloads'),
+        path.join(userProfile, 'AppData', 'Local', 'Programs'),
+        path.join(userProfile, 'AppData', 'Roaming', 'Telegram Desktop'),
+        'C:\\Program Files',
+        'C:\\Program Files (x86)',
+        'C:\\Program Files\\Microsoft Office\\root\\Office16',
+        'C:\\Program Files (x86)\\Microsoft Office\\root\\Office16',
+        'D:\\Program Files',
+        'D:\\Program Files (x86)',
+        'D:\\UserFiles\\Apps',
+        'D:\\UserFiles\\Desktop',
+        'D:\\UserFiles\\Downloads',
+        'D:\\ExtractedApps',
+        'D:\\Migrated_Files',
         'D:\\Migrated_Files\\Downloads\\Programs',
         'D:\\Downloads',
-        'C:\\Downloads'
+        'F:\\Program Files',
+        'F:\\UserFiles\\Apps',
+        'F:\\UserFiles\\Desktop',
+        'F:\\UserFiles\\Downloads',
+        'F:\\ExtractedApps',
+        'F:\\Downloads'
     ];
 
     const exeList = [];
-    for (const dir of scanDirs) {
-        if (fs.existsSync(dir)) {
-            try {
-                const files = fs.readdirSync(dir);
-                for (const file of files) {
-                    if (file.toLowerCase().endsWith('.exe')) {
-                        const fullPath = path.join(dir, file);
-                        try {
-                            const stat = fs.statSync(fullPath);
-                            exeList.push({
-                                name: file,
-                                fullPath: fullPath,
-                                dir: dir,
-                                sizeMB: parseFloat((stat.size / (1024 * 1024)).toFixed(1)),
-                                modified: stat.mtime
-                            });
-                        } catch (_) {}
-                    }
+    const seenPaths = new Set();
+
+    function scanDir(dir, depth = 0) {
+        if (depth > 2 || !fs.existsSync(dir)) return;
+        try {
+            const items = fs.readdirSync(dir, { withFileTypes: true });
+            for (const item of items) {
+                if (item.name.startsWith('$') || item.name === 'Windows' || item.name === 'node_modules' || item.name === 'System Volume Information') continue;
+                const fullPath = path.join(dir, item.name);
+
+                if (item.isDirectory()) {
+                    scanDir(fullPath, depth + 1);
+                } else if (item.isFile() && item.name.toLowerCase().endsWith('.exe')) {
+                    if (seenPaths.has(fullPath.toLowerCase())) continue;
+
+                    // Skip setup/uninstall helper exes that aren't main apps unless requested
+                    const lowerName = item.name.toLowerCase();
+                    if (lowerName.startsWith('unins') || lowerName.includes('uninstall') || lowerName === 'vc_redist.x64.exe' || lowerName === 'vc_redist.x86.exe') continue;
+
+                    try {
+                        const stat = fs.statSync(fullPath);
+                        // Filter out tiny helpers < 300KB except office tools
+                        if (stat.size < 300 * 1024 && !lowerName.includes('word') && !lowerName.includes('excel') && !lowerName.includes('powerpnt')) continue;
+
+                        seenPaths.add(fullPath.toLowerCase());
+                        exeList.push({
+                            name: item.name,
+                            fullPath: fullPath,
+                            dir: dir,
+                            sizeMB: parseFloat((stat.size / (1024 * 1024)).toFixed(1)),
+                            sizeGB: parseFloat((stat.size / (1024 ** 3)).toFixed(2)),
+                            modified: stat.mtime
+                        });
+                    } catch (_) {}
                 }
-            } catch (_) {}
-        }
+            }
+        } catch (_) {}
     }
+
+    for (const dir of baseScanDirs) {
+        scanDir(dir, 0);
+    }
+
+    // Sort: Larger/main executables first
+    exeList.sort((a, b) => b.sizeMB - a.sizeMB);
+
     res.json({ success: true, count: exeList.length, files: exeList });
 });
 

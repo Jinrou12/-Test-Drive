@@ -1614,18 +1614,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnLaunchExtracted = document.getElementById('btn-launch-extracted');
 
     let lastExtractedExe = null;
+    let allPortableFiles = [];
+
+    const portableSearchFilter = document.getElementById('portable-search-filter');
 
     async function loadPortableScan() {
         try {
             const res = await fetch('/api/portable/scan');
             const data = await res.json();
-            if (data.files && portableScannedSelect) {
-                portableScannedSelect.innerHTML = '<option value="">-- ចុចជ្រើសរើស File `.exe` ពី Downloads --</option>' +
-                    data.files.map(f => `<option value="${f.fullPath}" data-name="${f.name}">${f.name} (${f.sizeMB} MB) - [${f.dir}]</option>`).join('');
+            if (data.files) {
+                allPortableFiles = data.files;
+                renderPortableScanOptions(allPortableFiles);
             }
         } catch (err) {
             console.error('Scan portable error:', err);
         }
+    }
+
+    function renderPortableScanOptions(files) {
+        if (!portableScannedSelect) return;
+        const query = portableSearchFilter ? portableSearchFilter.value.toLowerCase().trim() : '';
+
+        const filtered = files.filter(f => {
+            if (!query) return true;
+            return f.name.toLowerCase().includes(query) || f.dir.toLowerCase().includes(query) || f.fullPath.toLowerCase().includes(query);
+        });
+
+        if (filtered.length === 0) {
+            portableScannedSelect.innerHTML = `<option value="">-- គ្មាន App ត្រូវនឹងពាក្យស្វែងរក "${query}" ឡើយ --</option>`;
+            return;
+        }
+
+        const optionsHtml = filtered.map(f => {
+            const lowerName = f.name.toLowerCase();
+            let icon = '📦';
+            if (lowerName.includes('photoshop') || lowerName.includes('lightroom') || lowerName.includes('adobe')) icon = '🎨';
+            else if (lowerName.includes('word') || lowerName.includes('excel') || lowerName.includes('powerpnt') || lowerName.includes('office')) icon = '📄';
+            else if (lowerName.includes('telegram') || lowerName.includes('discord') || lowerName.includes('chrome')) icon = '💬';
+            else if (lowerName.includes('antigravity') || lowerName.includes('code') || lowerName.includes('node')) icon = '💻';
+            else if (lowerName.includes('filmora') || lowerName.includes('obs') || lowerName.includes('video')) icon = '🎬';
+
+            const sizeStr = f.sizeGB > 1 ? `${f.sizeGB} GB` : `${f.sizeMB} MB`;
+
+            return `<option value="${f.fullPath}" data-name="${f.name}">${icon} ${f.name} (${sizeStr}) — [${f.dir}]</option>`;
+        }).join('');
+
+        portableScannedSelect.innerHTML = `<option value="">-- ជ្រើសរើសចេញពីបញ្ជី ${filtered.length} Apps ស្កែនឃើញ --</option>` + optionsHtml;
+    }
+
+    if (portableSearchFilter) {
+        portableSearchFilter.addEventListener('input', () => {
+            renderPortableScanOptions(allPortableFiles);
+        });
     }
 
     if (portableScannedSelect) {
