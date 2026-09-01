@@ -890,6 +890,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     modalConfirmBtn.addEventListener('click', async () => {
+        // Handle SHELL FOLDERS RELOCATION confirmation
+        if (pendingTransfer && pendingTransfer.isShellRelocate) {
+            const { targetDrive, moveFiles } = pendingTransfer;
+            pendingTransfer = null;
+            confirmModalOverlay.classList.add('hidden');
+
+            loadingTitle.textContent = 'កំពុងបង្វែរទីតាំង System Folders...';
+            loadingDesc.textContent = 'ប្រព័ន្ធកំពុងកំណត់ Registry និងរៀបចំទីតាំងថ្មីក្នុង Drive គោលដៅ...';
+            transferLoadingOverlay.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/shell-folders/relocate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetDrive, moveFiles })
+                });
+                const data = await res.json();
+                transferLoadingOverlay.classList.add('hidden');
+
+                if (data.success) {
+                    const shellResDrive = document.getElementById('shell-res-drive');
+                    const shellRelocateResult = document.getElementById('shell-relocate-result');
+                    if (shellResDrive) shellResDrive.textContent = `${targetDrive}\\UserFiles\\...`;
+                    if (shellRelocateResult) shellRelocateResult.classList.remove('hidden');
+                    loadShellFolders();
+                    showToast(`🎉 បានបង្វែរទីតាំង Save & Downloads ទៅ ${targetDrive} ដោយជោគជ័យ!`, 'info');
+                } else {
+                    showToast(`បរាជ័យក្នុងការបង្វែរទីតាំង ៖ ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (err) {
+                transferLoadingOverlay.classList.add('hidden');
+                showToast(`មានបញ្ហា ៖ ${err.message}`, 'error');
+            }
+            return;
+        }
+
         // Handle BULK END ALL confirmation
         if (pendingEndAll) {
             const { items, filterName } = pendingEndAll;
@@ -1527,6 +1563,209 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('🔄 បានធ្វើបច្ចុប្បន្នភាពទិន្នន័យ!', 'info');
     });
 
+    // ── Tab Switching Navigation Handler ──────────────────────────────────────
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            navButtons.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+
+            btn.classList.add('active');
+            const tabId = btn.getAttribute('data-tab');
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) targetTab.classList.add('active');
+            currentTab = tabId;
+
+            if (pageTitle) {
+                if (tabId === 'drives-tab') pageTitle.textContent = 'ផ្ទេរឯកសារ និងសម្អាត Drive C';
+                else if (tabId === 'boost-tab') pageTitle.textContent = 'បិទ Task ឥតប្រយោជន៍ (Boost Performance)';
+                else if (tabId === 'processes-tab') pageTitle.textContent = 'គ្រប់គ្រង Tasks & Processes ទាំងអស់';
+                else if (tabId === 'portable-tab') pageTitle.textContent = 'ពន្លា & បំប្លែង Portable Apps (.exe)';
+                else if (tabId === 'shell-folders-tab') pageTitle.textContent = 'បង្វែរទីតាំង Downloads & Save Files';
+            }
+
+            if (tabId === 'processes-tab') {
+                loadProcesses();
+            } else if (tabId === 'portable-tab') {
+                loadPortableScan();
+            } else if (tabId === 'shell-folders-tab') {
+                loadShellFolders();
+            }
+        });
+    });
+
+    // ── PORTABLE EXTRACTOR HANDLERS ──────────────────────────────────────────
+    const portableExePathInput = document.getElementById('portable-exe-path');
+    const portableScannedSelect = document.getElementById('portable-scanned-select');
+    const portableCustomNameInput = document.getElementById('portable-custom-name');
+    const portableTargetDriveSelect = document.getElementById('portable-target-drive');
+    const portableShortcutChk = document.getElementById('portable-shortcut-chk');
+    const btnExtractPortable = document.getElementById('btn-extract-portable');
+    const portableResultBox = document.getElementById('portable-result-box');
+    const portableResPath = document.getElementById('portable-res-path');
+    const btnLaunchExtracted = document.getElementById('btn-launch-extracted');
+
+    let lastExtractedExe = null;
+
+    async function loadPortableScan() {
+        try {
+            const res = await fetch('/api/portable/scan');
+            const data = await res.json();
+            if (data.files && portableScannedSelect) {
+                portableScannedSelect.innerHTML = '<option value="">-- ចុចជ្រើសរើស File `.exe` ពី Downloads --</option>' +
+                    data.files.map(f => `<option value="${f.fullPath}" data-name="${f.name}">${f.name} (${f.sizeMB} MB) - [${f.dir}]</option>`).join('');
+            }
+        } catch (err) {
+            console.error('Scan portable error:', err);
+        }
+    }
+
+    if (portableScannedSelect) {
+        portableScannedSelect.addEventListener('change', () => {
+            const val = portableScannedSelect.value;
+            if (val) {
+                portableExePathInput.value = val;
+                const selectedOpt = portableScannedSelect.options[portableScannedSelect.selectedIndex];
+                const nameAttr = selectedOpt ? selectedOpt.getAttribute('data-name') : '';
+                if (nameAttr) {
+                    portableCustomNameInput.value = nameAttr.replace(/\.exe$/i, '').replace(/[-_]/g, ' ');
+                }
+            }
+        });
+    }
+
+    if (btnExtractPortable) {
+        btnExtractPortable.addEventListener('click', async () => {
+            const exePath = portableExePathInput.value.trim();
+            if (!exePath) {
+                showToast('សូមជ្រើសរើស ឬបញ្ចូល Path នៃ File Executable (.exe)', 'error');
+                return;
+            }
+
+            const targetDrive = portableTargetDriveSelect ? portableTargetDriveSelect.value : 'D:';
+            const customName = portableCustomNameInput ? portableCustomNameInput.value.trim() : '';
+            const createShortcut = portableShortcutChk ? portableShortcutChk.checked : true;
+
+            loadingTitle.textContent = 'កំពុង Extract និងដំឡើង Portable App...';
+            loadingDesc.textContent = 'សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងពន្លាឯកសារទៅកាន់ Drive គោលដៅ...';
+            transferLoadingOverlay.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/portable/extract', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ exePath, targetDrive, customName, createShortcut })
+                });
+                const data = await res.json();
+                transferLoadingOverlay.classList.add('hidden');
+
+                if (data.success) {
+                    lastExtractedExe = data.mainExe;
+                    if (portableResPath) portableResPath.textContent = data.destFolder;
+                    if (portableResultBox) portableResultBox.classList.remove('hidden');
+                    showToast(`🎉 បាន Extract App "${data.appName}" ដោយជោគជ័យ!`, 'info');
+                } else {
+                    showToast(`បរាជ័យក្នុងការ Extract ៖ ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (err) {
+                transferLoadingOverlay.classList.add('hidden');
+                showToast(`មានបញ្ហា ៖ ${err.message}`, 'error');
+            }
+        });
+    }
+
+    if (btnLaunchExtracted) {
+        btnLaunchExtracted.addEventListener('click', async () => {
+            if (!lastExtractedExe) return;
+            try {
+                await fetch('/api/portable/launch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ exePath: lastExtractedExe })
+                });
+                showToast('🚀 កំពុងបើកកម្មវិធី...', 'info');
+            } catch (e) {
+                showToast('មិនអាចបើកកម្មវិធីបានទេ', 'error');
+            }
+        });
+    }
+
+    // ── SHELL FOLDERS RELOCATION HANDLERS ────────────────────────────────────
+    const shellFoldersTbody = document.getElementById('shell-folders-tbody');
+    const shellTargetDrive = document.getElementById('shell-target-drive');
+    const shellMoveFilesChk = document.getElementById('shell-move-files-chk');
+    const btnRelocateShellFolders = document.getElementById('btn-relocate-shell-folders');
+
+    if (shellTargetDrive) {
+        shellTargetDrive.addEventListener('change', () => {
+            const targetVal = shellTargetDrive.value;
+            document.querySelectorAll('.shell-preview-drive').forEach(el => {
+                el.textContent = targetVal;
+            });
+        });
+    }
+
+    async function loadShellFolders() {
+        if (!shellFoldersTbody) return;
+        shellFoldersTbody.innerHTML = `<tr><td colspan="5" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន System Folders...</td></tr>`;
+
+        try {
+            const res = await fetch('/api/shell-folders');
+            const data = await res.json();
+            if (data.folders) {
+                const folderAppMap = {
+                    Downloads: { name: '📥 Downloads', app: 'Chrome, Edge, Firefox, IDM' },
+                    Documents: { name: '📄 Documents', app: 'Photoshop, Lightroom, Word, Excel' },
+                    Pictures: { name: '🖼️ Pictures', app: 'Photoshop exports, Screenshots, Photos' },
+                    Videos: { name: '🎬 Videos', app: 'Premiere Pro, OBS, Screen Recorders' },
+                    Desktop: { name: '🖥️ Desktop', app: 'Desktop shortcuts, Desktop files' }
+                };
+
+                shellFoldersTbody.innerHTML = Object.entries(data.folders).map(([key, item]) => {
+                    const meta = folderAppMap[key] || { name: key, app: 'General App Saves' };
+                    const sizeStr = item.sizeGB > 1 ? `${item.sizeGB} GB` : `${item.sizeMB} MB`;
+                    const isDriveC = item.path.toLowerCase().startsWith('c:');
+                    const statusBadge = isDriveC 
+                        ? `<span class="badge-drive badge-c">Drive C</span>` 
+                        : `<span class="badge-drive badge-d">Relocated</span>`;
+
+                    return `
+                        <tr>
+                            <td><strong>${meta.name}</strong> ${statusBadge}</td>
+                            <td><span style="color:var(--accent-cyan); font-size:12px;">${meta.app}</span></td>
+                            <td><code style="font-size:11px;">${item.path}</code></td>
+                            <td><strong style="color:var(--accent-emerald);">${sizeStr}</strong></td>
+                            <td>${item.fileCount} files</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        } catch (err) {
+            shellFoldersTbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-rose">មានបញ្ហាក្នុងការស្កែន System Folders</td></tr>`;
+        }
+    }
+
+    if (btnRelocateShellFolders) {
+        btnRelocateShellFolders.addEventListener('click', async () => {
+            const targetDrive = shellTargetDrive ? shellTargetDrive.value : 'D:';
+            const moveFiles = shellMoveFilesChk ? shellMoveFilesChk.checked : true;
+
+            modalTitle.innerHTML = `<span style="color:var(--accent-emerald)"><i class="fa-solid fa-wand-magic-sparkles"></i> បញ្ជាក់ការបង្វែរទីតាំង Save & Downloads</span>`;
+            modalDesc.innerHTML = `
+                តើអ្នកពិតជាចង់បង្វែរទីតាំង System Folders ទាំងអស់ (Downloads, Documents, Pictures, Videos, Desktop) ទៅកាន់ <strong>${targetDrive}\\UserFiles\\...</strong> មែនទេ?<br><br>
+                <div style="background:rgba(6,182,212,0.1); border:1px solid var(--accent-cyan); padding:10px; border-radius:8px; font-size:12px; text-align:left;">
+                    👉 ក្រោយពីបង្វែររួច រាល់ការ Download និង Save ចេញពី Chrome, Photoshop, Word, Excel នឹងរត់ចូល Drive <strong>${targetDrive}</strong> ដោយស្វ័យប្រវត្តិ!
+                </div>
+            `;
+            modalConfirmBtn.className = 'btn btn-emerald';
+            modalConfirmBtn.textContent = 'យល់ព្រមបង្វែរទីតាំង (Relocate Now)';
+
+            pendingEndTask = null;
+            pendingEndAll = null;
+            pendingTransfer = { isShellRelocate: true, targetDrive, moveFiles };
+
+            confirmModalOverlay.classList.remove('hidden');
+        });
+    }
 
     // Non-blocking Parallel Initial Load (Instant UI rendering)
     function init() {

@@ -760,6 +760,302 @@ app.post('/api/boost-coder', async (req, res) => {
     res.json(await boostProcessList(targetProcesses));
 });
 
+// ── 9A. GET /api/portable/scan ───────────────────────────────────────────
+app.get('/api/portable/scan', async (req, res) => {
+    const userProfile = process.env.USERPROFILE || 'C:\\Users\\Default';
+    const scanDirs = [
+        path.join(userProfile, 'Downloads'),
+        'D:\\Migrated_Files\\Downloads\\Programs',
+        'D:\\Downloads',
+        'C:\\Downloads'
+    ];
+
+    const exeList = [];
+    for (const dir of scanDirs) {
+        if (fs.existsSync(dir)) {
+            try {
+                const files = fs.readdirSync(dir);
+                for (const file of files) {
+                    if (file.toLowerCase().endsWith('.exe')) {
+                        const fullPath = path.join(dir, file);
+                        try {
+                            const stat = fs.statSync(fullPath);
+                            exeList.push({
+                                name: file,
+                                fullPath: fullPath,
+                                dir: dir,
+                                sizeMB: parseFloat((stat.size / (1024 * 1024)).toFixed(1)),
+                                modified: stat.mtime
+                            });
+                        } catch (_) {}
+                    }
+                }
+            } catch (_) {}
+        }
+    }
+    res.json({ success: true, count: exeList.length, files: exeList });
+});
+
+// ── 9B. POST /api/portable/extract ───────────────────────────────────────
+app.post('/api/portable/extract', async (req, res) => {
+    const { exePath, targetDrive = 'D:', customName = '', createShortcut = true } = req.body;
+
+    if (!exePath || !fs.existsSync(exePath)) {
+        return res.status(400).json({ error: 'File exePath មិនត្រឹមត្រូវ ឬមិនទាន់មាន' });
+    }
+
+    const appName = customName || path.basename(exePath, '.exe').replace(/[-_]/g, ' ');
+    const safeFolderName = appName.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+    const destFolder = path.join(`${targetDrive}\\ExtractedApps`, safeFolderName);
+
+    // PowerShell script to extract using tar.exe or Expand-Archive and create Desktop Shortcut
+    const psScript = `
+        $exePath = "${exePath.replace(/"/g, '`"')}"
+        $destFolder = "${destFolder.replace(/"/g, '`"')}"
+        $appName = "${appName.replace(/"/g, '`"')}"
+        $createShortcut = $${createShortcut ? 'true' : 'false'}
+
+        if (-not (Test-Path $destFolder)) {
+            New-Item -Path $destFolder -ItemType Directory -Force | Out-Null
+        }
+
+        # Try extracting with built-in tar.exe (Windows 10/11)
+        $tarPath = "C:\\Windows\\System32\\tar.exe"
+        $extracted = $false
+        if (Test-Path $tarPath) {
+            & $tarPath -xf "$exePath" -C "$destFolder" *>&1 | Out-Null
+            $extracted = $true
+        }
+
+        if (-not $extracted) {
+            try {
+                Expand-Archive -LiteralPath "$exePath" -DestinationPath "$destFolder" -Force -ErrorAction Stop
+                $extracted = $true
+            } catch {
+                # Fallback: copy executable directly if uncompressed
+                Copy-Item -Path "$exePath" -Destination "$destFolder\\$appName.exe" -Force
+            }
+        }
+
+        # Find main executable in destFolder
+        $exeFiles = Get-ChildItem -Path "$destFolder" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Sort-Object Length -Descending
+        $mainExe = $null
+        if ($exeFiles.Count -gt 0) {
+            $mainExe = $exeFiles[0].FullName
+        } else {
+            $mainExe = "$destFolder\\$appName.exe"
+        }
+
+        # Create Desktop Shortcut
+        $shortcutCreated = $false
+        if ($createShortcut -and $mainExe -and (Test-Path $mainExe)) {
+            $desktopPath = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+            $shortcutPath = Join-Path $desktopPath "$appName.lnk"
+            $WshShell = New-Object -ComObject WScript.Shell
+            $Shortcut = $WshShell.CreateShortcut($shortcutPath)
+            $Shortcut.TargetPath = $mainExe
+            $Shortcut.WorkingDirectory = (Split-Path -Path $mainExe -Parent)
+            $Shortcut.Save()
+            $shortcutCreated = $true
+        }
+
+        [PSCustomObject]@{
+            Extracted = $true
+            DestFolder = $destFolder
+            MainExe = $mainExe
+            ShortcutCreated = $shortcutCreated
+        } | ConvertTo-Json
+    `;
+
+    const result = await runPowerShell(psScript);
+
+    if (!result.success) {
+        return res.status(500).json({ error: 'Extraction failed', details: result.error });
+    }
+
+    try {
+        const data = JSON.parse(result.stdout);
+        res.json({
+            success: true,
+            appName,
+            destFolder,
+            mainExe: data.MainExe,
+            shortcutCreated: data.ShortcutCreated
+        });
+    } catch (_) {
+        res.json({
+            success: true,
+            appName,
+            destFolder,
+            mainExe: path.join(destFolder, `${appName}.exe`),
+            shortcutCreated: true
+        });
+    }
+});
+
+// ── 9C. POST /api/portable/launch ─────────────────────────────────────────
+app.post('/api/portable/launch', (req, res) => {
+    const { exePath } = req.body;
+    if (!exePath || !fs.existsSync(exePath)) {
+        return res.status(400).json({ error: 'Executable not found' });
+    }
+    exec(`"${exePath}"`, { cwd: path.dirname(exePath) });
+    res.json({ success: true });
+});
+
+// ── 10A. GET /api/shell-folders ──────────────────────────────────────────
+app.get('/api/shell-folders', async (req, res) => {
+    const psScript = `
+        $regUserShell = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders"
+        $userProfile = $env:USERPROFILE
+
+        function Get-ShellPath($regName, $defaultSub) {
+            $val = (Get-ItemProperty -Path $regUserShell -Name $regName -ErrorAction SilentlyContinue).$regName
+            if ($val) {
+                return [System.Environment]::ExpandEnvironmentVariables($val)
+            }
+            return "$userProfile\\$defaultSub"
+        }
+
+        $downloads = (Get-ItemProperty -Path $regUserShell -Name "{374DE290-123F-4565-9164-39C4925E467B}" -ErrorAction SilentlyContinue)."{374DE290-123F-4565-9164-39C4925E467B}"
+        if (-not $downloads) {
+            $downloads = (Get-ItemProperty -Path $regUserShell -Name "{7d830070-267d-4354-8728-84e164612330}" -ErrorAction SilentlyContinue)."{7d830070-267d-4354-8728-84e164612330}"
+        }
+        if ($downloads) {
+            $downloads = [System.Environment]::ExpandEnvironmentVariables($downloads)
+        } else {
+            $downloads = "$userProfile\\Downloads"
+        }
+
+        [PSCustomObject]@{
+            UserProfile = $userProfile
+            Downloads   = $downloads
+            Documents   = (Get-ShellPath "Personal" "Documents")
+            Pictures    = (Get-ShellPath "My Pictures" "Pictures")
+            Videos      = (Get-ShellPath "My Video" "Videos")
+            Desktop     = (Get-ShellPath "Desktop" "Desktop")
+        } | ConvertTo-Json
+    `;
+
+    const result = await runPowerShell(psScript);
+
+    if (!result.success) {
+        return res.status(500).json({ error: 'Failed to fetch shell folders', details: result.error });
+    }
+
+    try {
+        const folders = JSON.parse(result.stdout);
+        // Calculate sizes for each folder
+        const folderSizes = {};
+        for (const [key, folderPath] of Object.entries(folders)) {
+            if (key === 'UserProfile') continue;
+            if (fs.existsSync(folderPath)) {
+                const metrics = getFolderMetrics(folderPath, 3);
+                folderSizes[key] = {
+                    path: folderPath,
+                    sizeBytes: metrics.totalSize,
+                    sizeMB: parseFloat((metrics.totalSize / (1024 * 1024)).toFixed(1)),
+                    sizeGB: parseFloat((metrics.totalSize / (1024 * 1024 * 1024)).toFixed(2)),
+                    fileCount: metrics.fileCount
+                };
+            } else {
+                folderSizes[key] = { path: folderPath, sizeBytes: 0, sizeMB: 0, sizeGB: 0, fileCount: 0 };
+            }
+        }
+
+        res.json({ success: true, userProfile: folders.UserProfile, folders: folderSizes });
+    } catch (e) {
+        res.status(500).json({ error: 'Parse error', details: e.message });
+    }
+});
+
+// ── 10B. POST /api/shell-folders/relocate ────────────────────────────────
+app.post('/api/shell-folders/relocate', async (req, res) => {
+    const { targetDrive = 'D:', moveFiles = true } = req.body;
+
+    const psScript = `
+        $targetDrive = "${targetDrive.replace(/"/g, '')}"
+        $moveFiles = $${moveFiles ? 'true' : 'false'}
+        $userProfile = $env:USERPROFILE
+        $baseTarget = "$targetDrive\\UserFiles"
+
+        $folderConfigs = @(
+            @{ Name="Downloads"; RegName="{374DE290-123F-4565-9164-39C4925E467B}"; GUID2="{7d830070-267d-4354-8728-84e164612330}"; DefaultPath="$userProfile\\Downloads" },
+            @{ Name="Documents"; RegName="Personal"; DefaultPath="$userProfile\\Documents" },
+            @{ Name="Pictures";  RegName="My Pictures"; DefaultPath="$userProfile\\Pictures" },
+            @{ Name="Videos";    RegName="My Video"; DefaultPath="$userProfile\\Videos" },
+            @{ Name="Desktop";   RegName="Desktop"; DefaultPath="$userProfile\\Desktop" }
+        )
+
+        $regUserShell = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders"
+        $regShell     = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders"
+
+        $relocationResults = @()
+
+        foreach ($cfg in $folderConfigs) {
+            $newPath = "$baseTarget\\$($cfg.Name)"
+            if (-not (Test-Path $newPath)) {
+                New-Item -Path $newPath -ItemType Directory -Force | Out-Null
+            }
+
+            # Update User Shell Folders
+            Set-ItemProperty -Path $regUserShell -Name $cfg.RegName -Value $newPath -ErrorAction SilentlyContinue
+            Set-ItemProperty -Path $regShell -Name $cfg.RegName -Value $newPath -ErrorAction SilentlyContinue
+            if ($cfg.GUID2) {
+                Set-ItemProperty -Path $regUserShell -Name $cfg.GUID2 -Value $newPath -ErrorAction SilentlyContinue
+            }
+
+            $movedFiles = 0
+            $oldPath = $cfg.DefaultPath
+            if ($moveFiles -and (Test-Path $oldPath) -and ($oldPath -ne $newPath)) {
+                try {
+                    Get-ChildItem -Path $oldPath -ErrorAction SilentlyContinue | ForEach-Object {
+                        $dest = Join-Path $newPath $_.Name
+                        Move-Item -Path $_.FullName -Destination $dest -Force -ErrorAction SilentlyContinue
+                        $movedFiles++
+                    }
+                } catch (_) {}
+            }
+
+            $relocationResults += [PSCustomObject]@{
+                Folder = $cfg.Name
+                NewPath = $newPath
+                MovedItems = $movedFiles
+            }
+        }
+
+        # Refresh Windows Explorer Shell so Chrome, Word, Photoshop pick up new path instantly
+        try {
+            $code = @"
+            using System;
+            using System.Runtime.InteropServices;
+            public class ShellUtil {
+                [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+                public static extern void SHChangeNotify(int wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
+            }
+"@
+            Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
+            [ShellUtil]::SHChangeNotify(0x08000000, 0x0000, [IntPtr]::Zero, [IntPtr]::Zero)
+        } catch (_) {}
+
+        $relocationResults | ConvertTo-Json
+    `;
+
+    const result = await runPowerShell(psScript);
+
+    if (!result.success) {
+        return res.status(500).json({ error: 'Relocation failed', details: result.error });
+    }
+
+    try {
+        const results = JSON.parse(result.stdout);
+        res.json({ success: true, targetDrive, baseTarget: `${targetDrive}\\UserFiles`, results });
+    } catch (_) {
+        res.json({ success: true, targetDrive, baseTarget: `${targetDrive}\\UserFiles` });
+    }
+});
+
+
 // ── Start server function ────────────────────────────────────────────────
 function startEmbeddedServer(port = PORT) {
     return new Promise((resolve) => {
