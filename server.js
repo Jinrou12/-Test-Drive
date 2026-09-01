@@ -760,6 +760,85 @@ app.post('/api/boost-coder', async (req, res) => {
     res.json(await boostProcessList(targetProcesses));
 });
 
+// ── 8C. POST /api/boost-adobe-ai ─────────────────────────────────────────
+app.post('/api/boost-adobe-ai', async (req, res) => {
+    // 1. Kill bloatware to free VRAM & System RAM
+    const targetProcesses = [
+        'SearchApp', 'PhoneExperienceHost', 'YourPhone', 'GameBarPresenceWriter', 'XboxGameBar',
+        'XboxAppServices', 'FeedbackHub', 'GoogleUpdate', 'EdgeUpdate', 'MicrosoftEdgeUpdate',
+        'AdobeUpdateService', 'AdobeARM', 'AGSService', 'AGMService', 'iTunesHelper',
+        'OneDrive', 'Spotify', 'Cortana', 'Widgets', 'Video.UI', 'ZuneMusic', 'ZuneVideo'
+    ];
+    const boostRes = await boostProcessList(targetProcesses);
+
+    // 2. PowerShell Script to Clear GPU Cache, set High Process Priority & High Performance GPU Preference
+    const psScript = `
+        $cacheDirs = @(
+            "$env:LOCALAPPDATA\\D3DSCache",
+            "$env:LOCALAPPDATA\\NVIDIA\\DXCache",
+            "$env:LOCALAPPDATA\\AMD\\DxCache",
+            "$env:APPDATA\\Adobe\\CameraRaw\\Cache"
+        )
+        $clearedCacheMB = 0
+        foreach ($dir in $cacheDirs) {
+            if (Test-Path $dir) {
+                try {
+                    $items = Get-ChildItem -Path $dir -Recurse -ErrorAction SilentlyContinue
+                    foreach ($i in $items) {
+                        $clearedCacheMB += [Math]::Round(($i.Length / 1MB), 1)
+                    }
+                    Remove-Item -Path "$dir\\*" -Recurse -Force -ErrorAction SilentlyContinue
+                } catch (_) {}
+            }
+        }
+
+        # Set Process Priority to High for Lightroom & Photoshop if active
+        $boostedApps = @()
+        $procs = Get-Process -Name "Lightroom", "Photoshop" -ErrorAction SilentlyContinue
+        foreach ($p in $procs) {
+            try {
+                $p.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::High
+                $boostedApps += $p.ProcessName
+            } catch (_) {}
+        }
+
+        # Register UserGpuPreferences (GpuPreference=2 => High Performance Discrete GPU)
+        $gpuRegPath = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"
+        if (-not (Test-Path $gpuRegPath)) { New-Item -Path $gpuRegPath -Force | Out-Null }
+        
+        $lrPaths = @(
+            "C:\\Program Files\\Adobe\\Adobe Lightroom Classic\\Lightroom.exe",
+            "C:\\Program Files\\Adobe\\Adobe Photoshop 2024\\Photoshop.exe",
+            "C:\\Program Files\\Adobe\\Adobe Photoshop 2023\\Photoshop.exe"
+        )
+        foreach ($p in $lrPaths) {
+            if (Test-Path $p) {
+                Set-ItemProperty -Path $gpuRegPath -Name $p -Value "GpuPreference=2;" -ErrorAction SilentlyContinue
+            }
+        }
+
+        [PSCustomObject]@{
+            ClearedCacheMB = $clearedCacheMB
+            BoostedApps = ($boostedApps | Select-Object -Unique)
+        } | ConvertTo-Json
+    `;
+
+    const psRes = await runPowerShell(psScript);
+    let extraData = { ClearedCacheMB: 0, BoostedApps: [] };
+    if (psRes.success) {
+        try { extraData = JSON.parse(psRes.stdout); } catch (_) {}
+    }
+
+    res.json({
+        success: true,
+        freedMB: boostRes.freedMB + Math.round(extraData.ClearedCacheMB || 0),
+        killedCount: boostRes.killedCount,
+        cacheClearedMB: Math.round(extraData.ClearedCacheMB || 0),
+        boostedApps: extraData.BoostedApps || [],
+        terminatedApps: boostRes.terminatedApps
+    });
+});
+
 // ── 9A. GET /api/portable/scan ───────────────────────────────────────────
 app.get('/api/portable/scan', async (req, res) => {
     const userProfile = process.env.USERPROFILE || 'C:\\Users\\Default';

@@ -1229,6 +1229,51 @@ document.addEventListener('DOMContentLoaded', () => {
         coderBoostBtn.addEventListener('click', () => runBoost('/api/boost-coder', 'Coder & AI Mode (Antigravity, Gemini, Claude)', coderBoostBtn));
     }
 
+    // 6C. Adobe AI Noise Denoise & Detect People Boost Mode Handler
+    const adobeAiBoostBtn = document.getElementById('adobe-ai-boost-btn');
+    if (adobeAiBoostBtn) {
+        adobeAiBoostBtn.addEventListener('click', async () => {
+            const originalHtml = adobeAiBoostBtn.innerHTML;
+            adobeAiBoostBtn.disabled = true;
+            adobeAiBoostBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងបង្កើនល្បឿន Render AI (Lightroom & Photoshop)...`;
+
+            try {
+                const res = await fetch('/api/boost-adobe-ai', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    boostResultCard.classList.remove('hidden');
+                    resultTitleText.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> លទ្ធផលនៃការ Boost សម្រាប់ Lightroom &amp; Photoshop AI Render`;
+                    resultFreedBadge.textContent = `+${data.freedMB} MB RAM/VRAM Freed`;
+
+                    let extraMsg = '';
+                    if (data.cacheClearedMB > 0) extraMsg += ` | សម្អាត GPU Shader Cache បាន ${data.cacheClearedMB} MB`;
+                    if (data.boostedApps && data.boostedApps.length > 0) extraMsg += ` | កំណត់ Priority High លើ: ${data.boostedApps.join(', ')}`;
+                    else extraMsg += ` | បានកំណត់ GPU High Performance ស្រាប់ជាស្រេច`;
+
+                    resultText.textContent = `បិទបានចំនួន ${data.killedCount} ដំណើរការ background ឥតប្រយោជន៍${extraMsg}។`;
+
+                    if (data.terminatedApps && data.terminatedApps.length > 0) {
+                        closedAppsList.innerHTML = data.terminatedApps.map(app =>
+                            `<span class="closed-app-tag"><i class="fa-solid fa-xmark color-red"></i> ${app}</span>`
+                        ).join('');
+                    } else {
+                        closedAppsList.innerHTML = `<span class="text-sub">បិទ Background Services ឥតប្រយោជន៍រួចរាល់ (GPU Ready)</span>`;
+                    }
+
+                    showToast(`⚡ ល្បឿន AI Noise Denoise & Detect People ត្រូវបានទាញយកអតិបរមា!`, 'success');
+                } else {
+                    showToast('❌ មានបញ្ហាក្នុងការ Boost', 'error');
+                }
+            } catch (e) {
+                showToast('❌ មានបញ្ហាក្នុងការ Boost', 'error');
+            } finally {
+                adobeAiBoostBtn.disabled = false;
+                adobeAiBoostBtn.innerHTML = originalHtml;
+            }
+        });
+    }
+
     async function runBoost(endpoint, modeName, btnElement) {
         const originalHtml = btnElement.innerHTML;
         btnElement.disabled = true;
