@@ -109,9 +109,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateDriveDropdowns(drives) {
-        // Target Options
-        const targetOptions = drives.map(d => {
-            return `<option value="${d.drive}">${d.drive} (ទំនេរ ${d.freeGB} GB)</option>`;
+        // Target Options (exclude C: for transfer targets, but include all other drives including external)
+        const nonCDrives = drives.filter(d => !d.drive.toUpperCase().startsWith('C'));
+        const targetDrivesList = nonCDrives.length > 0 ? nonCDrives : drives;
+
+        const targetOptions = targetDrivesList.map(d => {
+            const tag = (d.isExternal || d.driveType === 2) ? ' 🔌 [External SSD/HDD]' : '';
+            return `<option value="${d.drive}">${d.drive}${tag} (ទំនេរ ${d.freeGB} GB)</option>`;
+        }).join('');
+
+        const allTargetOptions = drives.map(d => {
+            const tag = (d.isExternal || d.driveType === 2) ? ' 🔌 [External SSD/HDD]' : '';
+            return `<option value="${d.drive}">${d.drive}${tag} (ទំនេរ ${d.freeGB} GB)</option>`;
         }).join('');
 
         if (univTargetDriveSelect) {
@@ -126,9 +135,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (defaultTarget) userFoldersBatchTarget.value = defaultTarget.drive;
         }
 
-        // Source Options
+        const shellTargetDriveSelect = document.getElementById('shell-target-drive');
+        if (shellTargetDriveSelect) {
+            shellTargetDriveSelect.innerHTML = targetOptions;
+            const defaultTarget = drives.find(d => d.isExternal) || drives.find(d => !d.drive.startsWith('C')) || drives[0];
+            if (defaultTarget) shellTargetDriveSelect.value = defaultTarget.drive;
+        }
+
+        const portableTargetDriveSelect = document.getElementById('portable-target-drive');
+        if (portableTargetDriveSelect) {
+            portableTargetDriveSelect.innerHTML = targetOptions;
+            const defaultTarget = drives.find(d => d.isExternal) || drives.find(d => !d.drive.startsWith('C')) || drives[0];
+            if (defaultTarget) portableTargetDriveSelect.value = defaultTarget.drive;
+        }
+
+        // Source Options (includes Drive C: as main source)
         const sourceOptions = drives.map(d => {
-            return `<option value="${d.drive}">Drive ${d.drive} (ទំនេរ ${d.freeGB} GB)</option>`;
+            const tag = (d.isExternal || d.driveType === 2) ? ' 🔌 [External]' : '';
+            return `<option value="${d.drive}">Drive ${d.drive}${tag} (ទំនេរ ${d.freeGB} GB)</option>`;
         }).join('');
 
         if (univSourceDriveSelect) {
@@ -212,8 +236,14 @@ document.addEventListener('DOMContentLoaded', () => {
             let driveClass = 'd-drive';
             let fillClass = 'fill-d';
             let badgeClass = 'badge-d';
+            let iconClass = 'fa-solid fa-hard-drive';
 
-            if (d.drive.startsWith('C')) {
+            if (d.isExternal || d.driveType === 2) {
+                driveClass = 'f-drive';
+                fillClass = 'fill-f';
+                badgeClass = 'badge-f';
+                iconClass = 'fa-solid fa-usb';
+            } else if (d.drive.startsWith('C')) {
                 driveClass = 'c-drive';
                 fillClass = 'fill-c';
                 badgeClass = 'badge-c';
@@ -223,12 +253,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 badgeClass = 'badge-f';
             }
 
+            const externalBadge = (d.isExternal || d.driveType === 2) 
+                ? `<span class="badge-drive badge-f" style="font-size:10px; margin-left:6px;"><i class="fa-solid fa-usb"></i> External SSD/HDD</span>` 
+                : '';
+
             return `
                 <div class="drive-card ${driveClass}">
                     <div class="drive-header">
                         <div class="drive-info">
-                            <h3><i class="fa-solid fa-hard-drive"></i> ${d.drive}</h3>
-                            <span>${d.name || 'Local Storage'} (${d.fileSystem || 'NTFS'})</span>
+                            <h3><i class="${iconClass}"></i> ${d.drive} ${externalBadge}</h3>
+                            <span>${d.name || (d.isExternal ? 'External Drive' : 'Local Disk')} (${d.fileSystem || 'NTFS'})</span>
                         </div>
                         <span class="badge-drive ${badgeClass}">${d.usedPercent}% ប្រើប្រាស់</span>
                     </div>
@@ -830,29 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    navButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            navButtons.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(t => t.classList.remove('active'));
-
-            btn.classList.add('active');
-            const targetTab = btn.getAttribute('data-tab');
-            currentTab = targetTab;
-            document.getElementById(targetTab).classList.add('active');
-
-            if (targetTab === 'drives-tab') {
-                pageTitle.textContent = 'ផ្ទេរឯកសារ និងសម្អាត Drive C';
-                pageDesc.textContent = 'ប្តូរទំហំទំនេរ Drive C ទៅកាន់ Drive D ឬ F ដោយសុវត្ថិភាព';
-            } else if (targetTab === 'boost-tab') {
-                pageTitle.textContent = 'បិទ Task ឥតប្រយោជន៍ (Edit & Code Booster)';
-                pageDesc.textContent = 'ជ្រើសរើស Mode សម្រាប់ Editor ឬ Coder & AI ដើម្បីទាញយក Speed';
-            } else if (targetTab === 'processes-tab') {
-                pageTitle.textContent = 'គ្រប់គ្រង Processes (Tasks)';
-                pageDesc.textContent = 'ស្វែងរក និងបិទ Process ណាដែលអ្នកមិនត្រូវការដោយផ្ទាល់';
-                loadProcesses();
-            }
-        });
-    });
+    // NOTE: Full nav handler is registered below at the complete event handler section.
 
 
     // Toast Notifications — FIX: use DOM API + textContent to prevent XSS
@@ -1059,7 +1071,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (transferProgressPollInterval) { clearInterval(transferProgressPollInterval); transferProgressPollInterval = null; }
                 transferLoadingOverlay.classList.add('hidden');
                 await loadDrives();
-                await loadUserFolders();
                 loadSelectedSourceDrives();
             }
             return;
@@ -1125,7 +1136,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (barFill) barFill.style.width = '100%';
                 showToast(`✅ ផ្ទេរ "${folderName}" ទៅ ${targetDrive} រួចរាល់ដោយសុវត្ថិភាព (100%)!`, 'success');
                 await loadDrives();
-                await loadUserFolders();
             } else if (result.cancelled) {
                 showToast(`⚠️ បានបោះបង់ការផ្ទេរ Folder "${folderName}"`, 'info');
             } else {
@@ -1168,7 +1178,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             pendingTransfer = null;
             await loadDrives();
-            await loadUserFolders();
         });
     }
 
@@ -1705,42 +1714,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadShellFolders() {
-        if (!shellFoldersTbody) return;
-        shellFoldersTbody.innerHTML = `<tr><td colspan="5" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន System Folders...</td></tr>`;
+        const shellCardsContainer = document.getElementById('shell-folders-cards');
+        if (shellCardsContainer) {
+            shellCardsContainer.innerHTML = `<div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន System Folders...</div>`;
+        }
+        if (shellFoldersTbody) {
+            shellFoldersTbody.innerHTML = '';
+        }
 
         try {
             const res = await fetch('/api/shell-folders');
             const data = await res.json();
-            if (data.folders) {
+            if (data.folders && shellCardsContainer) {
                 const folderAppMap = {
-                    Downloads: { name: '📥 Downloads', app: 'Chrome, Edge, Firefox, IDM' },
-                    Documents: { name: '📄 Documents', app: 'Photoshop, Lightroom, Word, Excel' },
-                    Pictures: { name: '🖼️ Pictures', app: 'Photoshop exports, Screenshots, Photos' },
-                    Videos: { name: '🎬 Videos', app: 'Premiere Pro, OBS, Screen Recorders' },
-                    Desktop: { name: '🖥️ Desktop', app: 'Desktop shortcuts, Desktop files' }
+                    Downloads: { name: '📥 Downloads', app: 'Chrome, Edge, Firefox, IDM', icon: '📥' },
+                    Documents: { name: '📄 Documents', app: 'Photoshop, Lightroom, Word, Excel', icon: '📄' },
+                    Pictures:  { name: '🖼️ Pictures',  app: 'Photoshop exports, Screenshots, Photos', icon: '🖼️' },
+                    Videos:    { name: '🎬 Videos',    app: 'Premiere Pro, OBS, Screen Recorders', icon: '🎬' },
+                    Desktop:   { name: '🖥️ Desktop',   app: 'Desktop shortcuts, Desktop files', icon: '🖥️' }
                 };
 
-                shellFoldersTbody.innerHTML = Object.entries(data.folders).map(([key, item]) => {
-                    const meta = folderAppMap[key] || { name: key, app: 'General App Saves' };
+                shellCardsContainer.innerHTML = Object.entries(data.folders).map(([key, item]) => {
+                    const meta = folderAppMap[key] || { name: key, app: 'General App Saves', icon: '📁' };
                     const sizeStr = item.sizeGB > 1 ? `${item.sizeGB} GB` : `${item.sizeMB} MB`;
                     const isDriveC = item.path.toLowerCase().startsWith('c:');
-                    const statusBadge = isDriveC 
-                        ? `<span class="badge-drive badge-c">Drive C</span>` 
-                        : `<span class="badge-drive badge-d">Relocated</span>`;
+                    const cardClass = isDriveC ? 'folder-card on-c' : 'folder-card relocated';
+                    const statusBadge = isDriveC
+                        ? `<span class="badge-drive badge-c" style="font-size:10px;">Drive C</span>`
+                        : `<span class="badge-drive badge-f" style="font-size:10px;">Relocated ✓</span>`;
 
                     return `
-                        <tr>
-                            <td><strong>${meta.name}</strong> ${statusBadge}</td>
-                            <td><span style="color:var(--accent-cyan); font-size:12px;">${meta.app}</span></td>
-                            <td><code style="font-size:11px;">${item.path}</code></td>
-                            <td><strong style="color:var(--accent-emerald);">${sizeStr}</strong></td>
-                            <td>${item.fileCount} files</td>
-                        </tr>
+                        <div class="${cardClass}">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <span class="folder-card-icon">${meta.icon}</span>
+                                ${statusBadge}
+                            </div>
+                            <div class="folder-card-name">${meta.name}</div>
+                            <div class="folder-card-path">${item.path}</div>
+                            <div class="folder-card-size">${sizeStr} · ${item.fileCount} files</div>
+                            <div class="folder-card-apps">${meta.app}</div>
+                        </div>
                     `;
                 }).join('');
             }
         } catch (err) {
-            shellFoldersTbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-rose">មានបញ្ហាក្នុងការស្កែន System Folders</td></tr>`;
+            if (shellCardsContainer) {
+                shellCardsContainer.innerHTML = `<div class="error-msg">❌ មានបញ្ហាក្នុងការស្កែន System Folders</div>`;
+            }
         }
     }
 
@@ -1764,6 +1784,15 @@ document.addEventListener('DOMContentLoaded', () => {
             pendingTransfer = { isShellRelocate: true, targetDrive, moveFiles };
 
             confirmModalOverlay.classList.remove('hidden');
+        });
+    }
+
+    // Wire up the Refresh button in Shell Folders tab
+    const btnRefreshShellFolders = document.getElementById('btn-refresh-shell-folders');
+    if (btnRefreshShellFolders) {
+        btnRefreshShellFolders.addEventListener('click', () => {
+            loadShellFolders();
+            showToast('🔄 Refreshing folder locations...', 'info');
         });
     }
 

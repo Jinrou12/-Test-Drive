@@ -1,4 +1,5 @@
 node_modules/
 dist/
+!dist/PC-Optimizer-Portable.exe
 *.log
 .DS_Store

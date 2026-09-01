@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PC Optimizer & Drive C Manager</title>
-    <!-- Google Fonts: Inter & Kantumruy Pro for Khmer UI -->
+    <meta name="description" content="PC Optimizer — Transfer Drive C, Boost Performance, Manage Processes, Extract Portable Apps, Relocate Save Folders">
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -22,30 +23,45 @@
                 </div>
                 <div class="brand-text">
                     <h2>PC Optimizer</h2>
-                    <span>Drive C & Task Manager</span>
+                    <span>Drive C &amp; Task Manager</span>
                 </div>
             </div>
 
             <nav class="nav-menu">
                 <button class="nav-btn active" data-tab="drives-tab">
-                    <i class="fa-solid fa-hard-drive"></i>
-                    <span>ផ្ទេរឯកសារ Drive C (Transfer)</span>
+                    <span class="nav-icon"><i class="fa-solid fa-hard-drive"></i></span>
+                    <span class="nav-label">
+                        <span class="nav-label-km">ផ្ទេរ Drive C</span>
+                        <span class="nav-label-en">Drive Transfer</span>
+                    </span>
                 </button>
                 <button class="nav-btn" data-tab="boost-tab">
-                    <i class="fa-solid fa-bolt-lightning"></i>
-                    <span>បិទ Task ឥតប្រយោជន៍ (Boost)</span>
+                    <span class="nav-icon"><i class="fa-solid fa-bolt-lightning"></i></span>
+                    <span class="nav-label">
+                        <span class="nav-label-km">បិទ Task ឥតប្រយោជន៍</span>
+                        <span class="nav-label-en">PC Boost</span>
+                    </span>
                 </button>
                 <button class="nav-btn" data-tab="processes-tab">
-                    <i class="fa-solid fa-list-check"></i>
-                    <span>គ្រប់គ្រង Processes (Tasks)</span>
+                    <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
+                    <span class="nav-label">
+                        <span class="nav-label-km">គ្រប់គ្រង Processes</span>
+                        <span class="nav-label-en">Task Manager</span>
+                    </span>
                 </button>
                 <button class="nav-btn" data-tab="portable-tab">
-                    <i class="fa-solid fa-box-open"></i>
-                    <span>ពន្លា Portable App (Extractor)</span>
+                    <span class="nav-icon"><i class="fa-solid fa-box-open"></i></span>
+                    <span class="nav-label">
+                        <span class="nav-label-km">ពន្លា Portable App</span>
+                        <span class="nav-label-en">App Extractor</span>
+                    </span>
                 </button>
                 <button class="nav-btn" data-tab="shell-folders-tab">
-                    <i class="fa-solid fa-folder-tree"></i>
-                    <span>បង្វែរទីតាំង Save & Downloads</span>
+                    <span class="nav-icon"><i class="fa-solid fa-folder-tree"></i></span>
+                    <span class="nav-label">
+                        <span class="nav-label-km">បង្វែរ Save & Downloads</span>
+                        <span class="nav-label-en">Relocate Folders</span>
+                    </span>
                 </button>
             </nav>
 
@@ -54,7 +70,7 @@
                 <p>រៀបចំយ៉ាងពិសេសសម្រាប់៖</p>
                 <div class="tags">
                     <span class="tag"><i class="fa-solid fa-video"></i> Video/Photo Edit Mode</span>
-                    <span class="tag"><i class="fa-solid fa-code"></i> Coder & AI Mode</span>
+                    <span class="tag"><i class="fa-solid fa-code"></i> Coder &amp; AI Mode</span>
                 </div>
             </div>
         </aside>
@@ -69,12 +85,14 @@
                 </div>
                 <div class="header-actions">
                     <button id="refresh-all-btn" class="btn btn-secondary">
-                        <i class="fa-solid fa-rotate"></i> ធ្វើបច្ចុប្បន្នភាព (Refresh)
+                        <i class="fa-solid fa-rotate"></i> Refresh
                     </button>
                 </div>
             </header>
 
-            <!-- TAB 1: DRIVES & FILE TRANSFER -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!-- TAB 1: DRIVES & FILE TRANSFER                                 -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
             <section id="drives-tab" class="tab-content active">
                 <div class="section-label"><i class="fa-solid fa-database"></i> ស្ថានភាពទំហំដ្រាយ (Drives Status)</div>
                 <div class="drives-grid" id="drives-grid">
@@ -86,20 +104,20 @@
                     <div class="clean-info">
                         <div class="clean-icon"><i class="fa-solid fa-broom"></i></div>
                         <div>
-                            <h3>សម្អាតឯកសារបណ្ដោះអាសន្ន (Temp & Cache Files) ក្នុង Drive C:</h3>
+                            <h3>សម្អាតឯកសារបណ្ដោះអាសន្ន (Temp &amp; Cache Files) ក្នុង Drive C:</h3>
                             <p id="temp-scan-desc">ស្កែនរកឯកសារភាគច្រើនដែលមិនចាំបាច់ក្នុង Windows Temp និង Browser Cache</p>
                         </div>
                     </div>
                     <div class="clean-action">
-                        <div class="temp-badge" id="temp-badge"><i class="fa-solid fa-calculator"></i> 0.0 MB</div>
+                        <div class="temp-badge" id="temp-badge"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន...</div>
                         <button id="clean-temp-btn" class="btn btn-emerald">
                             <i class="fa-solid fa-trash-can"></i> សម្អាតភ្លាមៗ (Clean Now)
                         </button>
                     </div>
                 </div>
 
-                <!-- Universal Multi-Drive Transfer Panel (MOVED TO TOP) -->
-                <div class="card universal-transfer-card" style="border: 1px solid rgba(6, 182, 212, 0.3); background: rgba(11, 15, 25, 0.85);">
+                <!-- Universal Multi-Drive Transfer Panel -->
+                <div class="card universal-transfer-card">
                     <div class="card-header flex-header">
                         <div>
                             <h3 style="color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
@@ -110,63 +128,60 @@
                     </div>
 
                     <!-- Step 1 & Step 2 Controls -->
-                    <div class="universal-transfer-controls" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0;">
-                        <!-- Multi Source Drive Checkbox & Dropdown Selector -->
-                        <div class="control-box" style="background: rgba(6, 182, 212, 0.08); border: 1px solid var(--accent-cyan); border-radius: var(--radius-md); padding: 12px 14px;">
-                            <label style="font-weight: 700; color: var(--accent-cyan); font-size: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div class="universal-transfer-controls">
+                        <!-- Multi Source Drive Selector -->
+                        <div class="control-box control-box-cyan">
+                            <label class="control-box-label cyan">
                                 <span><i class="fa-solid fa-hard-drive"></i> 1. Source Drives (ប្រភព)</span>
                                 <span class="badge-drive badge-c" style="font-size: 10px;">Source</span>
                             </label>
-                            
-                            <div id="source-drives-checkbox-group" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                            <div id="source-drives-checkbox-group" class="checkbox-group">
                                 <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន...</div>
                             </div>
-
-                            <select id="univ-source-drive" class="drive-select" style="width: 100%; padding: 6px 10px; font-size: 13px; font-weight: 600;">
+                            <select id="univ-source-drive" class="drive-select" style="width: 100%; margin-top: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600;">
                                 <option value="C:">Drive C:</option>
                             </select>
                         </div>
 
-                        <!-- Target Drive Selector (Supports External Drives) -->
-                        <div class="control-box" style="background: rgba(16, 185, 129, 0.08); border: 1px solid var(--accent-emerald); border-radius: var(--radius-md); padding: 12px 14px;">
-                            <label style="font-weight: 700; color: var(--accent-emerald); font-size: 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <!-- Target Drive Selector -->
+                        <div class="control-box control-box-emerald">
+                            <label class="control-box-label emerald">
                                 <span><i class="fa-solid fa-box-archive"></i> 2. Target Drive (គោលដៅ)</span>
                                 <span class="badge-drive badge-f" style="font-size: 10px;">Target</span>
                             </label>
-                            <select id="univ-target-drive" class="drive-select" style="width: 100%; padding: 8px 10px; font-size: 13px; font-weight: 700; color: var(--accent-emerald); margin-top: 4px;">
+                            <select id="univ-target-drive" class="drive-select" style="width: 100%; padding: 8px 10px; font-size: 13px; font-weight: 700; color: var(--accent-emerald); margin-top: 8px;">
                                 <option value="F:">Drive F:</option>
                             </select>
                         </div>
                     </div>
 
                     <!-- Folder Explorer of Selected Source Drive -->
-                    <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div class="inner-panel">
+                        <div class="inner-panel-header">
                             <span style="font-weight: 700; font-size: 14px; color: var(--text-main);">
                                 <i class="fa-solid fa-folder-open color-cyan"></i> បញ្ជី Folders ក្នុង <span id="univ-source-name" style="color: var(--accent-cyan);">Drive C:</span>
                             </span>
                             <div style="display: flex; gap: 8px;">
                                 <button id="btn-univ-select-all" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Select All</button>
-                                <button id="btn-univ-clear-all" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Clear Selection</button>
+                                <button id="btn-univ-clear-all" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Clear</button>
                                 <button id="btn-add-to-queue" class="btn btn-cyan" style="padding: 4px 14px; font-size: 13px; font-weight: 700;">
                                     <i class="fa-solid fa-plus"></i> បន្ថែមចូល Queue
                                 </button>
                             </div>
                         </div>
-
-                        <div id="univ-folder-list" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                        <div id="univ-folder-list" class="folder-scroll-list">
                             <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន Folders...</div>
                         </div>
                     </div>
 
                     <!-- UNIFIED TRANSFER QUEUE TABLE -->
-                    <div style="background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: var(--radius-md); padding: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h4 style="color: var(--accent-cyan); font-size: 14px; display: flex; align-items: center; gap: 6px;">
-                                <i class="fa-solid fa-layer-group"></i> បញ្ជីរង់ចាំផ្ទេរ Multi-Drive Queue (<span id="queue-count-badge">0 items</span>)
+                    <div class="inner-panel queue-panel">
+                        <div class="inner-panel-header">
+                            <h4 style="color: var(--accent-cyan); font-size: 14px; display: flex; align-items: center; gap: 6px; margin: 0;">
+                                <i class="fa-solid fa-layer-group"></i> Queue (<span id="queue-count-badge">0 items</span>)
                             </h4>
                             <button id="btn-clear-queue" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">
-                                <i class="fa-solid fa-trash-can"></i> លុប Queue ទាំងអស់
+                                <i class="fa-solid fa-trash-can"></i> លុប Queue
                             </button>
                         </div>
 
@@ -175,7 +190,7 @@
                                 <thead>
                                     <tr>
                                         <th>Source Drive</th>
-                                        <th>ឈ្មោះ & ទីតាំង Item</th>
+                                        <th>ឈ្មោះ &amp; ទីតាំង Item</th>
                                         <th>ទំហំ (Size)</th>
                                         <th style="width: 70px; text-align: center;">លុប</th>
                                     </tr>
@@ -183,62 +198,52 @@
                                 <tbody id="queue-tbody">
                                     <tr>
                                         <td colspan="4" class="text-center text-sub" style="padding: 16px;">
-                                            មិនទាន់មាន Item ក្នុង Queue ឡើយ (សូមជ្រើសរើស Folder រួចចុច "បន្ថែមចូល Queue")
+                                            មិនទាន់មាន Item ក្នុង Queue ឡើយ — សូមជ្រើសរើស Folder រួចចុច "បន្ថែមចូល Queue"
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
 
-                        <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="queue-footer">
                             <div style="font-size: 13px; color: var(--text-muted);">
-                                សរុបក្នុង Queue៖ <strong id="queue-total-items" style="color: var(--accent-cyan);">0</strong> items 
+                                សរុប: <strong id="queue-total-items" style="color: var(--accent-cyan);">0</strong> items
                                 (<strong id="queue-total-size" style="color: var(--accent-emerald);">0.0 MB</strong>)
                             </div>
-                            <button id="btn-execute-queue" class="btn btn-emerald" disabled style="padding: 10px 24px; font-size: 15px; font-weight: 700;">
-                                <i class="fa-solid fa-paper-plane"></i> ផ្ទេរ Items ទាំងអស់ក្នុង Queue ទៅកាន់ Target Drive
+                            <button id="btn-execute-queue" class="btn btn-emerald" disabled style="padding: 10px 24px; font-size: 14px; font-weight: 700;">
+                                <i class="fa-solid fa-paper-plane"></i> ផ្ទេរ Items ទាំងអស់ក្នុង Queue
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- App & File Usage & Inactivity Analyzer Card (MOVED TO BOTTOM) -->
-                <div class="card table-card" id="usage-analyzer-card" style="border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(11, 15, 25, 0.85); margin-top: 20px;">
+                <!-- App & File Usage & Inactivity Analyzer Card -->
+                <div class="card table-card usage-analyzer-card" id="usage-analyzer-card">
                     <div class="card-header flex-header">
                         <div>
                             <h3 style="color: var(--accent-emerald); display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-chart-pie"></i> វិភាគ & ស្កែនឯកសារ / Apps តាមរយៈពេលមិនដែលប្រើ (Inactivity Filter)
+                                <i class="fa-solid fa-chart-pie"></i> វិភាគ &amp; ស្កែនឯកសារ/Apps — Inactivity Filter
                             </h3>
-                            <p>ស្កែនរកឯកសារ និង Apps ក្នុង Drive ទាំង ៣ ដែលមិនដែលប្រើ មិនដែលប៉ះពាល់យូរមកហើយ ដើម្បីផ្ទេរ ឬ លុបសម្អាត</p>
+                            <p>ស្កែនរកឯកសារ និង Apps ក្នុង Drive ទាំង ៣ ដែលមិនដែលប្រើ ដើម្បីផ្ទេរ ឬ លុបសម្អាត</p>
                         </div>
                     </div>
 
                     <!-- Filter Controls Bar -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin: 12px 0; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px;">
+                    <div class="filter-controls-bar">
                         <!-- Filter Buttons: 1W, 1M, 6M, 1Y -->
-                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;" id="usage-filter-group">
-                            <span style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-right: 4px;">
-                                <i class="fa-solid fa-filter"></i> តម្រង (Filter Duration):
-                            </span>
-                            <button class="btn btn-secondary usage-filter-btn" data-filter="1W" style="padding: 5px 12px; font-size: 12px;">
-                                🟢 1 សប្ដាហ៍ (1 Week)
-                            </button>
-                            <button class="btn btn-secondary usage-filter-btn" data-filter="1M" style="padding: 5px 12px; font-size: 12px;">
-                                🟡 1 ខែ (1 Month)
-                            </button>
-                            <button class="btn btn-secondary usage-filter-btn" data-filter="6M" style="padding: 5px 12px; font-size: 12px;">
-                                🟠 6 ខែ (6 Months)
-                            </button>
-                            <button class="btn btn-emerald usage-filter-btn active" data-filter="1Y" style="padding: 5px 14px; font-size: 12px; font-weight: 700;">
-                                🔴 1 ឆ្នាំ+ (1 Year+ Unused)
-                            </button>
+                        <div class="usage-filter-group" id="usage-filter-group">
+                            <span class="filter-group-label"><i class="fa-solid fa-filter"></i> Filter Duration:</span>
+                            <button class="btn btn-secondary usage-filter-btn" data-filter="1W" style="padding: 5px 12px; font-size: 12px;">🟢 1 Week</button>
+                            <button class="btn btn-secondary usage-filter-btn" data-filter="1M" style="padding: 5px 12px; font-size: 12px;">🟡 1 Month</button>
+                            <button class="btn btn-secondary usage-filter-btn" data-filter="6M" style="padding: 5px 12px; font-size: 12px;">🟠 6 Months</button>
+                            <button class="btn btn-emerald usage-filter-btn active" data-filter="1Y" style="padding: 5px 14px; font-size: 12px; font-weight: 700;">🔴 1 Year+ Unused</button>
                         </div>
 
                         <!-- Drive Filter & Batch Actions -->
                         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                             <label style="font-size: 12px; color: var(--accent-cyan); font-weight: 700;">Drive:</label>
                             <select id="usage-drive-filter" class="drive-select" style="padding: 5px 10px; font-size: 12px; font-weight: 600;">
-                                <option value="ALL">Drive ទាំងអស់ (All Drives)</option>
+                                <option value="ALL">All Drives</option>
                                 <option value="C:">Drive C:</option>
                                 <option value="D:">Drive D:</option>
                                 <option value="F:">Drive F:</option>
@@ -267,14 +272,14 @@
                                     <th>ឈ្មោះ File / App Folder</th>
                                     <th>ទីតាំងដើម (Source Drive)</th>
                                     <th>ទំហំសរុប</th>
-                                    <th>កាលបរិច្ឆេទប្រើចុងក្រោយ</th>
-                                    <th>ស្ថានភាព (Usage Status)</th>
-                                    <th style="text-align: center;">សកម្មភាព (Actions)</th>
+                                    <th>ប្រើចុងក្រោយ</th>
+                                    <th>ស្ថានភាព</th>
+                                    <th style="text-align: center;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="usage-tbody">
                                 <tr>
-                                    <td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន និង វិភាគឯកសារ...</td>
+                                    <td colspan="7" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -282,18 +287,20 @@
                 </div>
             </section>
 
-            <!-- TAB 2: EDIT & CODE BOOST -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!-- TAB 2: EDIT & CODE BOOST                                      -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
             <section id="boost-tab" class="tab-content">
-                <div class="section-label"><i class="fa-solid fa-sliders"></i> ជ្រើសរើស Mode បង្កើនល្បឿន (Select Optimization Mode)</div>
+                <div class="section-label"><i class="fa-solid fa-sliders"></i> ជ្រើសរើស Mode បង្កើនល្បឿន</div>
 
                 <div class="boost-modes-grid">
                     <!-- MODE 1: VIDEO & PHOTO EDITOR -->
                     <div class="hero-boost-card editor-mode-card">
                         <div class="hero-content">
                             <div class="hero-icon editor-icon"><i class="fa-solid fa-film"></i></div>
-                            <h2>1. Mode សម្រាប់ Video & Photo Editor</h2>
-                            <p>ទាញយក CPU & RAM អតិបរមាសម្រាប់កម្មវិធី **Lightroom, Photoshop, Premiere Pro, DaVinci Resolve**...</p>
-                            
+                            <h2>1. Mode សម្រាប់ Video &amp; Photo Editor</h2>
+                            <p>ទាញយក CPU &amp; RAM អតិបរមាសម្រាប់ <strong>Lightroom, Photoshop, Premiere Pro, DaVinci Resolve</strong>...</p>
+
                             <div class="safe-notice editor-notice">
                                 <i class="fa-solid fa-shield-check"></i>
                                 <span>ការពារដាច់ខាតមិនបិទ Lightroom / Photoshop / Premiere!</span>
@@ -309,16 +316,16 @@
                     <div class="hero-boost-card coder-mode-card">
                         <div class="hero-content">
                             <div class="hero-icon coder-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-                            <h2>2. Mode សម្រាប់ Coder & AI</h2>
-                            <p>ទាញយក Speed សម្រាប់ **Antigravity, Gemini AI, Claude AI, VS Code, Node.js & Web Testing**...</p>
-                            
+                            <h2>2. Mode សម្រាប់ Coder &amp; AI</h2>
+                            <p>ទាញយក Speed សម្រាប់ <strong>Antigravity, Gemini AI, Claude AI, VS Code, Node.js &amp; Web Testing</strong>...</p>
+
                             <div class="safe-notice coder-notice">
                                 <i class="fa-solid fa-shield-check"></i>
-                                <span>ការពារដាច់ខាតមិនបិទ Antigravity IDE, Claude, Gemini & Dev Tools!</span>
+                                <span>ការពារដាច់ខាតមិនបិទ Antigravity IDE, Claude, Gemini &amp; Dev Tools!</span>
                             </div>
 
                             <button id="coder-boost-btn" class="btn-hero btn-hero-coder">
-                                <i class="fa-solid fa-code"></i> BOOST សម្រាប់ CODER & AI
+                                <i class="fa-solid fa-code"></i> BOOST សម្រាប់ CODER &amp; AI
                             </button>
                         </div>
                     </div>
@@ -327,7 +334,7 @@
                 <!-- Boost Log Result -->
                 <div class="card boost-result-card hidden" id="boost-result-card">
                     <div class="result-header">
-                        <div class="result-title" id="result-title-text"><i class="fa-solid fa-circle-check"></i> លទ្ធផលនៃការទាញយក Speed មកវិញ</div>
+                        <div class="result-title" id="result-title-text"><i class="fa-solid fa-circle-check"></i> លទ្ធផលនៃការទាញយក Speed</div>
                         <span class="badge-success" id="result-freed-badge">+0 MB Freed</span>
                     </div>
                     <p id="result-text">បិទបានចំនួន 0 ដំណើរការ background ឥតប្រយោជន៍។</p>
@@ -349,7 +356,7 @@
                         </div>
                         <div class="target-item">
                             <i class="fa-brands fa-windows color-blue"></i>
-                            <div><strong>Windows Telemetry & Xbox</strong><span>(Cortana, GameBar, Telemetry)</span></div>
+                            <div><strong>Windows Telemetry &amp; Xbox</strong><span>(Cortana, GameBar, Telemetry)</span></div>
                         </div>
                         <div class="target-item">
                             <i class="fa-solid fa-cloud color-cyan"></i>
@@ -357,23 +364,25 @@
                         </div>
                         <div class="target-item">
                             <i class="fa-solid fa-film color-red"></i>
-                            <div><strong>Films & TV / Groove Music</strong><span>(Video.UI, ZuneMusic, ZuneVideo)</span></div>
+                            <div><strong>Films &amp; TV / Groove Music</strong><span>(Video.UI, ZuneMusic, ZuneVideo)</span></div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 3: LIVE PROCESS MANAGER -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!-- TAB 3: LIVE PROCESS MANAGER                                   -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
             <section id="processes-tab" class="tab-content">
                 <div class="card table-card">
                     <div class="card-header flex-header">
                         <div>
-                            <h3><i class="fa-solid fa-microchip"></i> គ្រប់គ្រង Tasks & Processes កំពុងរត់ក្នុងប្រព័ន្ធ</h3>
-                            <p>ស្វែងរក ពិនិត្យមើលតួនាទី និងបិទ Process ណាដែលអ្នកមិនត្រូវការដោយសុវត្ថិភាព</p>
+                            <h3><i class="fa-solid fa-microchip"></i> គ្រប់គ្រង Tasks &amp; Processes</h3>
+                            <p>ស្វែងរក ពិនិត្យមើលតួនាទី និងបិទ Process ណាដែលមិនត្រូវការ</p>
                         </div>
                         <div class="search-box">
                             <i class="fa-solid fa-magnifying-glass"></i>
-                            <input type="text" id="proc-search-input" placeholder="ស្វែងរកតាមឈ្មោះ ឬតួនាទី Process...">
+                            <input type="text" id="proc-search-input" class="form-input" placeholder="ស្វែងរក Process...">
                         </div>
                     </div>
 
@@ -384,18 +393,18 @@
                                 <i class="fa-solid fa-layer-group"></i> ទាំងអស់ <span class="filter-count" id="count-all">0</span>
                             </button>
                             <button class="proc-filter-btn filter-bloatware" data-filter="bloatware">
-                                <i class="fa-solid fa-ban"></i> Task ឥតប្រយោជន៍ <span class="filter-count" id="count-bloatware">0</span>
+                                <i class="fa-solid fa-ban"></i> ឥតប្រយោជន៍ <span class="filter-count" id="count-bloatware">0</span>
                             </button>
                             <button class="proc-filter-btn filter-safe" data-filter="safe">
                                 <i class="fa-solid fa-circle-check"></i> អាចបិទបាន <span class="filter-count" id="count-safe">0</span>
                             </button>
                             <button class="proc-filter-btn filter-system" data-filter="system">
-                                <i class="fa-solid fa-shield-halved"></i> ប្រព័ន្ធ (កុំបិទ) <span class="filter-count" id="count-system">0</span>
+                                <i class="fa-solid fa-shield-halved"></i> ប្រព័ន្ធ <span class="filter-count" id="count-system">0</span>
                             </button>
                         </div>
                         <div class="end-all-container">
                             <button id="btn-end-all" class="btn btn-rose btn-end-all">
-                                <i class="fa-solid fa-dumpster-fire"></i> <span id="end-all-label">បិទ Task ក្នុង Filter នេះទាំងអស់</span>
+                                <i class="fa-solid fa-dumpster-fire"></i> <span id="end-all-label">បិទ Task ទាំងអស់</span>
                             </button>
                         </div>
                     </div>
@@ -405,16 +414,16 @@
                             <thead>
                                 <tr>
                                     <th>PID</th>
-                                    <th>ឈ្មោះ & តួនាទី Process</th>
+                                    <th>ឈ្មោះ &amp; តួនាទី Process</th>
                                     <th>ប្រភេទ / សុវត្ថិភាព</th>
-                                    <th>ការប្រើ RAM</th>
+                                    <th>RAM</th>
                                     <th>ទីតាំងឯកសារ (Path)</th>
-                                    <th>សកម្មភាព</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="processes-tbody">
                                 <tr>
-                                    <td colspan="6" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយកបញ្ជី Processes...</td>
+                                    <td colspan="6" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយក Processes...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -422,185 +431,173 @@
                 </div>
             </section>
 
-            <!-- TAB 4: PORTABLE APP EXTRACTOR -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!-- TAB 4: PORTABLE APP EXTRACTOR                                 -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
             <section id="portable-tab" class="tab-content">
-                <div class="section-label"><i class="fa-solid fa-box-open"></i> ពន្លា & បំប្លែង Portable Apps (.exe) ទៅជា Setup Installed App</div>
-                
-                <div class="card" style="border: 1px solid rgba(6, 182, 212, 0.3); background: rgba(11, 15, 25, 0.85); margin-bottom: 20px;">
+                <div class="section-label"><i class="fa-solid fa-box-open"></i> ពន្លា &amp; បំប្លែង Portable Apps (.exe) ទៅជា Setup Installed App</div>
+
+                <div class="card" style="border: 1px solid rgba(6, 182, 212, 0.3);">
                     <div class="card-header">
                         <h3 style="color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">
                             <i class="fa-solid fa-bolt"></i> ដោះស្រាយបញ្ហា Portable App បើកយូរ (Extract to Local Drive)
                         </h3>
-                        <p>ជ្រើសរើស File Portable (.exe) ណាមួយ ដើម្បី Extract វាទៅកាន់ Drive D/F ទុកជាមុន ធ្វើឱ្យបើកមកភ្លាមៗ (Instant Launch) ដោយមិនបាច់រង់ចាំ Extract រាល់ពេលបើក!</p>
+                        <p>ជ្រើសរើស File Portable (.exe) ដើម្បី Extract វាទៅ Drive D/F ទុកជាមុន ធ្វើឱ្យបើកភ្លាមៗ (Instant Launch)!</p>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px;">
-                        <!-- Left Panel: Manual Input or Select File -->
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px;">
-                            <h4 style="font-size: 14px; color: var(--accent-cyan); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                                <i class="fa-solid fa-file-executable"></i> 1. ជ្រើសរើស File Portable (.exe)
-                            </h4>
-                            
-                            <div style="margin-bottom: 12px;">
-                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">ផ្លូវ Path នៃ File Executable (.exe) ៖</label>
-                                <input type="text" id="portable-exe-path" class="form-input" placeholder="ឧទាហរណ៍៖ D:\Migrated_Files\Downloads\Programs\App.exe" style="width: 100%; padding: 8px 12px; font-size: 13px;">
+                    <div class="portable-grid">
+                        <!-- Left Panel: File Selection -->
+                        <div class="panel-box">
+                            <div class="panel-box-header">
+                                <i class="fa-solid fa-file color-cyan"></i>
+                                <span style="color: var(--accent-cyan);">1. ជ្រើសរើស File Portable (.exe)</span>
                             </div>
 
-                            <div style="margin-bottom: 16px;">
-                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">ជ្រើសរើសចេញពីបញ្ជីស្កែនបានក្នុង Downloads ៖</label>
-                                <select id="portable-scanned-select" class="drive-select" style="width: 100%; padding: 8px 12px; font-size: 13px;">
+                            <div class="form-group">
+                                <label class="form-label">ផ្លូវ Path នៃ File Executable (.exe) ៖</label>
+                                <input type="text" id="portable-exe-path" class="form-input" placeholder="ឧទាហរណ៍: D:\Downloads\App.exe">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">ជ្រើសរើសចេញពីបញ្ជីស្កែនបានក្នុង Downloads ៖</label>
+                                <select id="portable-scanned-select" class="drive-select" style="width: 100%;">
                                     <option value="">-- ចុចជ្រើសរើស File `.exe` ពី Downloads --</option>
                                 </select>
                             </div>
 
-                            <div style="margin-bottom: 16px;">
-                                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">ឈ្មោះ App (Custom App Name) ៖</label>
-                                <input type="text" id="portable-custom-name" class="form-input" placeholder="ទុកទំនេរដើម្បីយកតាមឈ្មោះ File" style="width: 100%; padding: 8px 12px; font-size: 13px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">ឈ្មោះ App (Custom App Name) ៖</label>
+                                <input type="text" id="portable-custom-name" class="form-input" placeholder="ទុកទំនេរដើម្បីយកតាមឈ្មោះ File">
                             </div>
                         </div>
 
-                        <!-- Right Panel: Target Drive & Shortcut Settings -->
-                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+                        <!-- Right Panel: Target Drive & Extract Settings -->
+                        <div class="panel-box" style="display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
-                                <h4 style="font-size: 14px; color: var(--accent-emerald); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                                    <i class="fa-solid fa-folder-plus"></i> 2. ជ្រើសរើស Drive គោលដៅ សម្រាប់ Extract
-                                </h4>
+                                <div class="panel-box-header">
+                                    <i class="fa-solid fa-folder-plus color-emerald"></i>
+                                    <span style="color: var(--accent-emerald);">2. ជ្រើស Drive គោលដៅ សម្រាប់ Extract</span>
+                                </div>
 
-                                <div style="margin-bottom: 16px;">
-                                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Drive គោលដៅ ៖</label>
-                                    <select id="portable-target-drive" class="drive-select" style="width: 100%; padding: 8px 12px; font-size: 14px; font-weight: 700; color: var(--accent-emerald);">
-                                        <option value="D:">Drive D: (\ExtractedApps)</option>
-                                        <option value="F:">Drive F: (\ExtractedApps)</option>
-                                        <option value="C:">Drive C: (\ExtractedApps)</option>
+                                <div class="form-group">
+                                    <label class="form-label">Drive គោលដៅ ៖</label>
+                                    <select id="portable-target-drive" class="drive-select" style="width: 100%; font-weight: 700; color: var(--accent-emerald);">
+                                        <option value="D:">Drive D: (D:\UserFiles\Apps\...)</option>
+                                        <option value="F:">Drive F: (F:\UserFiles\Apps\...)</option>
                                     </select>
                                 </div>
 
-                                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid var(--accent-emerald); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
-                                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-main);">
-                                        <input type="checkbox" id="portable-shortcut-chk" checked style="width: 18px; height: 18px; accent-color: var(--accent-emerald);">
-                                        <span><i class="fa-solid fa-desktop" style="color: var(--accent-emerald);"></i> បង្កើត Desktop Shortcut ដោយស្វ័យប្រវត្តិ (Create Desktop Shortcut)</span>
+                                <div class="form-group">
+                                    <label class="form-check">
+                                        <input type="checkbox" id="portable-shortcut-chk" checked>
+                                        <span><i class="fa-solid fa-link color-cyan"></i> បង្កើត Shortcut ដោយស្វ័យប្រវត្តិ</span>
                                     </label>
                                 </div>
                             </div>
 
-                            <button id="btn-extract-portable" class="btn btn-emerald" style="width: 100%; padding: 12px; font-size: 15px; font-weight: 700;">
-                                <i class="fa-solid fa-box-open"></i> ពន្លា និងដំឡើងភ្លាមៗ (Extract & Install Now)
+                            <button id="btn-extract-portable" class="btn btn-cyan btn-full btn-lg" style="margin-top: 12px;">
+                                <i class="fa-solid fa-box-open"></i> Extract App ភ្លាមៗ (Extract Now)
                             </button>
                         </div>
                     </div>
 
-                    <!-- Extraction Result Box -->
-                    <div id="portable-result-box" class="hidden" style="margin-top: 20px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-emerald); border-radius: var(--radius-md); padding: 16px;">
-                        <h4 style="color: var(--accent-emerald); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-circle-check"></i> ពន្លាឯកសារបានជោគជ័យ! (Extraction Complete)
-                        </h4>
-                        <p style="font-size: 13px; color: var(--text-main); margin-bottom: 12px;">
-                            កម្មវិធីត្រូវបាន Extract ទៅកាន់ ៖ <strong id="portable-res-path" style="color: var(--accent-cyan);">D:\ExtractedApps\...</strong>
-                        </p>
-                        <div style="display: flex; gap: 12px;">
-                            <button id="btn-launch-extracted" class="btn btn-cyan" style="padding: 8px 16px; font-size: 13px; font-weight: 700;">
-                                <i class="fa-solid fa-play"></i> បើកកម្មវិធីភ្លាមៗ (Launch App)
+                    <!-- Extract Result Box -->
+                    <div id="portable-result-box" class="hidden" style="margin-top: 16px;">
+                        <div class="success-box">
+                            <div class="success-box-icon"><i class="fa-solid fa-circle-check"></i></div>
+                            <div class="success-box-text">
+                                <h4>Extract បានជោគជ័យ! 🎉</h4>
+                                <p>App ត្រូវបាន Extract ទៅ: <code id="portable-res-path"></code></p>
+                            </div>
+                            <button id="btn-launch-extracted" class="btn btn-emerald" style="flex-shrink: 0;">
+                                <i class="fa-solid fa-rocket"></i> បើក App
                             </button>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 5: SYSTEM SHELL FOLDERS RELOCATION -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
+            <!-- TAB 5: SYSTEM SHELL FOLDERS RELOCATION                        -->
+            <!-- ══════════════════════════════════════════════════════════════ -->
             <section id="shell-folders-tab" class="tab-content">
-                <div class="section-label"><i class="fa-solid fa-folder-tree"></i> បង្វែរទីតាំង Downloads & Save Files ទាំងអស់ទៅ Drive D/F</div>
+                <div class="section-label"><i class="fa-solid fa-folder-arrow-down"></i> បង្វែរ Save &amp; Downloads — ចេញពី Drive C ទៅ Drive ផ្សេង</div>
 
-                <!-- Explanation Banner Card -->
-                <div class="card" style="border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(11, 15, 25, 0.85); margin-bottom: 20px;">
-                    <div class="card-header">
-                        <h3 style="color: var(--accent-emerald); display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> បង្វែរការ Save/Download ទាំងអស់ចេញពី Drive C ដោយស្វ័យប្រវត្តិ
+                <!-- Info Banner -->
+                <div class="info-banner warning">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-amber);"></i>
+                    <div class="info-banner-text">
+                        ពេល Download ពី <strong>Chrome, Edge</strong> ឬ Save ពី <strong>Photoshop, Lightroom, Word, Excel</strong>
+                        វារត់ចូល <strong>Drive C</strong> ដោយស្វ័យប្រវត្តិ ធ្វើឱ្យ Drive C ពេញ!
+                        ចុច <strong>Relocate</strong> ដើម្បីប្ដូរទីតាំងទៅ Drive D/F ម្ដងជារៀងរហូត។
+                    </div>
+                </div>
+
+                <!-- Current Status Cards -->
+                <div class="card" style="padding: 20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                        <h3 style="font-size:15px; color:#fff; display:flex; align-items:center; gap:8px;">
+                            <i class="fa-solid fa-folder-open color-cyan"></i> ទីតាំងបច្ចុប្បន្ន (Current Save Locations)
                         </h3>
-                        <p>
-                            ជាទូទៅ ពេលលោកអ្នក Download រូបភាព/វីដេអូចេញពី <strong>Chrome, Edge</strong> ឬ Save ឯកសារពី <strong>Photoshop, Lightroom, Word, Excel</strong> វានឹងរត់ចូល Drive C ដោយស្វ័យប្រវត្តិ។<br>
-                            មុខងារនេះនឹង <strong>បង្វែរទីតាំង (Relocate)</strong> System Folders ទាំងអស់ (Downloads, Documents, Pictures, Videos, Desktop) ទៅកាន់ Drive D/F ក្នុងទម្រង់រៀបចំស្អាត បើកមើលងាយស្រួល ដូចក្នុង Drive C ចឹង!
-                        </p>
-                    </div>
-
-                    <!-- Current Shell Folders Overview Table -->
-                    <div style="margin: 16px 0;">
-                        <h4 style="font-size: 14px; color: var(--accent-cyan); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                            <i class="fa-solid fa-list-ol"></i> ទីតាំងបច្ចុប្បន្ន និងទំហំ System Folders ក្នុង Drive C
-                        </h4>
-                        <div class="table-responsive">
-                            <table class="data-table" style="font-size: 13px;">
-                                <thead>
-                                    <tr>
-                                        <th>ប្រភេទ Folder</th>
-                                        <th>កម្មវិធីប្រើប្រាស់ (Used By)</th>
-                                        <th>ទីតាំងបច្ចុប្បន្ន (Current Path)</th>
-                                        <th>ទំហំ (Size)</th>
-                                        <th>ចំនួន File</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="shell-folders-tbody">
-                                    <tr>
-                                        <td colspan="5" class="text-center py-4"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន System Folders...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Relocation Settings Control Panel -->
-                    <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid var(--accent-cyan); border-radius: var(--radius-md); padding: 16px; margin-top: 16px;">
-                        <h4 style="color: var(--accent-cyan); margin-bottom: 12px; font-size: 15px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-arrows-split-up-and-left"></i> ការកំណត់ការបង្វែរទីតាំង (Relocate Settings)
-                        </h4>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                            <div>
-                                <label style="font-size: 13px; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 6px;">
-                                    ជ្រើសរើស Drive គោលដៅថ្មី (Target Drive) ៖
-                                </label>
-                                <select id="shell-target-drive" class="drive-select" style="width: 100%; padding: 10px 14px; font-size: 14px; font-weight: 700; color: var(--accent-emerald);">
-                                    <option value="D:">Drive D: (ឧទាហរណ៍៖ D:\UserFiles\...)</option>
-                                    <option value="F:">Drive F: (ឧទាហរណ៍៖ F:\UserFiles\...)</option>
-                                </select>
-                            </div>
-
-                            <div style="display: flex; align-items: center;">
-                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); width: 100%;">
-                                    <input type="checkbox" id="shell-move-files-chk" checked style="width: 18px; height: 18px; accent-color: var(--accent-cyan);">
-                                    <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">
-                                        <i class="fa-solid fa-truck-ramp-box color-cyan"></i> ផ្ទេរឯកសារចាស់ៗដែលមានស្រាប់ទៅ Drive ថ្មីផងដែរ (Move existing files)
-                                    </span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Target Path Preview List -->
-                        <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 12px;">
-                            <span style="font-weight: 700; color: var(--accent-cyan); display: block; margin-bottom: 6px;">
-                                <i class="fa-solid fa-eye"></i> រចនាសម្ព័ន្ធទីតាំងថ្មី ដែលនឹងរៀបចំស្អាតក្នុង Drive គោលដៅ ៖
-                            </span>
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; color: var(--text-sub);">
-                                <div>📥 Downloads ➔ <span class="shell-preview-drive">D:</span>\UserFiles\Downloads</div>
-                                <div>📄 Documents ➔ <span class="shell-preview-drive">D:</span>\UserFiles\Documents</div>
-                                <div>🖼️ Pictures ➔ <span class="shell-preview-drive">D:</span>\UserFiles\Pictures</div>
-                                <div>🎬 Videos ➔ <span class="shell-preview-drive">D:</span>\UserFiles\Videos</div>
-                                <div>🖥️ Desktop ➔ <span class="shell-preview-drive">D:</span>\UserFiles\Desktop</div>
-                            </div>
-                        </div>
-
-                        <button id="btn-relocate-shell-folders" class="btn btn-emerald" style="width: 100%; padding: 12px; font-size: 16px; font-weight: 700;">
-                            <i class="fa-solid fa-paper-plane"></i> បង្វែរទីតាំង Save & Downloads ទាំងអស់ទៅ Drive D/F ភ្លាមៗ (Relocate All Now)
+                        <button id="btn-refresh-shell-folders" class="btn btn-secondary" style="font-size:12px; padding:7px 14px;">
+                            <i class="fa-solid fa-rotate"></i> Refresh
                         </button>
                     </div>
+                    <div id="shell-folders-cards" class="folder-cards-grid">
+                        <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងស្កែន...</div>
+                    </div>
+                    <!-- Hidden tbody for JS compatibility -->
+                    <tbody id="shell-folders-tbody" style="display:none;"></tbody>
+                </div>
 
-                    <!-- Relocation Status Box -->
-                    <div id="shell-relocate-result" class="hidden" style="margin-top: 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-emerald); border-radius: var(--radius-md); padding: 16px;">
-                        <h4 style="color: var(--accent-emerald); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-circle-check"></i> បង្វែរទីតាំងបានជោគជ័យ ១០០%! (Relocation Successful)
-                        </h4>
-                        <p style="font-size: 13px; color: var(--text-main);">
-                            ឥឡូវនេះរាល់ការ Download ចេញពី Chrome និងការ Save ចេញពី Photoshop, Lightroom, Word, Excel នឹងរត់ចូល <strong id="shell-res-drive" style="color: var(--accent-cyan);">D:\UserFiles\...</strong> ដោយស្វ័យប្រវត្តិ!
-                        </p>
+                <!-- Relocate Settings -->
+                <div class="card" style="border-color:rgba(16,185,129,0.2);">
+                    <h3 style="font-size:15px; color:var(--accent-emerald); display:flex; align-items:center; gap:8px; margin-bottom:18px;">
+                        <i class="fa-solid fa-arrows-split-up-and-left"></i> ការកំណត់ (Relocate Settings)
+                    </h3>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                        <div class="form-group">
+                            <label class="form-label">ជ្រើស Drive គោលដៅថ្មី ៖</label>
+                            <select id="shell-target-drive" class="drive-select" style="width:100%; font-weight:700; color:var(--accent-emerald);">
+                                <option value="D:">📁 Drive D: → D:\UserFiles\</option>
+                                <option value="F:">📁 Drive F: → F:\UserFiles\</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ការជ្រើសរើស ៖</label>
+                            <label class="form-check">
+                                <input type="checkbox" id="shell-move-files-chk" checked>
+                                <span><i class="fa-solid fa-truck-ramp-box color-cyan"></i> ផ្ទេរឯកសារចាស់ ទៅ Drive ថ្មីផងដែរ</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Preview of new structure -->
+                    <div style="margin-bottom:18px;">
+                        <label class="form-label" style="margin-bottom:8px;">📍 រចនាសម្ព័ន្ធទីតាំងថ្មី (Preview) ៖</label>
+                        <div class="relocate-preview">
+                            <div class="relocate-preview-item">📥 Downloads <span class="arrow">→</span> <span class="shell-preview-drive">D:</span>\UserFiles\Downloads</div>
+                            <div class="relocate-preview-item">📄 Documents <span class="arrow">→</span> <span class="shell-preview-drive">D:</span>\UserFiles\Documents</div>
+                            <div class="relocate-preview-item">🖼️ Pictures <span class="arrow">→</span> <span class="shell-preview-drive">D:</span>\UserFiles\Pictures</div>
+                            <div class="relocate-preview-item">🎬 Videos <span class="arrow">→</span> <span class="shell-preview-drive">D:</span>\UserFiles\Videos</div>
+                            <div class="relocate-preview-item">🖥️ Desktop <span class="arrow">→</span> <span class="shell-preview-drive">D:</span>\UserFiles\Desktop</div>
+                        </div>
+                    </div>
+
+                    <button id="btn-relocate-shell-folders" class="btn btn-emerald btn-full btn-lg">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> បង្វែរទីតាំង Save &amp; Downloads ភ្លាមៗ (Relocate Now)
+                    </button>
+
+                    <!-- Success Result -->
+                    <div id="shell-relocate-result" class="hidden" style="margin-top:16px;">
+                        <div class="success-box">
+                            <div class="success-box-icon"><i class="fa-solid fa-circle-check"></i></div>
+                            <div class="success-box-text">
+                                <h4>បង្វែរបានជោគជ័យ ១០០%! 🎉</h4>
+                                <p>ឥឡូវ Chrome, Photoshop, Word, Excel នឹង Save &amp; Download ចូល <strong id="shell-res-drive" class="color-cyan">D:\UserFiles\...</strong> ដោយស្វ័យប្រវត្តិ!</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -608,7 +605,9 @@
         </main>
     </div>
 
-    <!-- CUSTOM CONFIRMATION MODAL -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- CUSTOM CONFIRMATION MODAL                                             -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
     <div id="confirm-modal-overlay" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-icon"><i class="fa-solid fa-circle-question"></i></div>
@@ -616,47 +615,51 @@
             <p id="modal-desc">តើអ្នកពិតជាចង់ផ្ទេរ Folder នេះពី Drive C ទៅកាន់ Drive គោលដៅមែនទេ?</p>
             <div class="modal-actions">
                 <button id="modal-cancel-btn" class="btn btn-secondary">បោះបង់ (Cancel)</button>
-                <button id="modal-confirm-btn" class="btn btn-emerald"><i class="fa-solid fa-check"></i> យល់ព្រមផ្ទេរ (Confirm Move)</button>
+                <button id="modal-confirm-btn" class="btn btn-emerald"><i class="fa-solid fa-check"></i> យល់ព្រម (Confirm)</button>
             </div>
         </div>
     </div>
 
-    <!-- TRANSFER PROGRESS LOADING OVERLAY -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- TRANSFER PROGRESS LOADING OVERLAY                                     -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
     <div id="transfer-loading-overlay" class="modal-overlay hidden">
         <div class="modal-card text-center" style="max-width: 480px;">
             <div class="modal-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
             <h3 id="loading-title">កំពុងផ្ទេរឯកសារ...</h3>
-            <p id="loading-desc">សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងផ្ទេរឯកសារយ៉ាងប្រុងប្រយ័ត្ន (Robocopy Transfer)...</p>
-            
-            <!-- Percentage & Progress Bar -->
+            <p id="loading-desc">សូមរង់ចាំ ប្រព័ន្ធកំពុងផ្ទេរឯកសារ (Robocopy Transfer)...</p>
+
+            <!-- Progress Bar -->
             <div class="progress-container" style="margin: 16px 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 700; font-size: 14px;">
-                    <span style="color: var(--text-muted);">ដំណើរការផ្ទេរ (Progress):</span>
+                    <span style="color: var(--text-muted);">Progress:</span>
                     <span id="progress-percent-text" style="color: var(--accent-cyan); font-size: 18px; font-weight: 800;">0%</span>
                 </div>
-                <div style="background: rgba(255, 255, 255, 0.1); border-radius: 10px; height: 12px; overflow: hidden; width: 100%;">
+                <div style="background: rgba(255,255,255,0.1); border-radius: 10px; height: 12px; overflow: hidden;">
                     <div id="progress-bar-fill" style="background: linear-gradient(90deg, #06b6d4, #10b981); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 10px;"></div>
                 </div>
             </div>
 
-            <!-- Live Elapsed Timer Counter -->
-            <div id="loading-timer-box" style="background: rgba(6, 182, 212, 0.1); border: 1px solid rgba(6, 182, 212, 0.3); padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; color: var(--accent-cyan); font-weight: 700; font-size: 14px;">
-                <i class="fa-solid fa-stopwatch" style="margin-right: 6px;"></i> រយៈពេលផ្ទេរ៖ <span id="timer-counter">00:00</span>
+            <!-- Live Elapsed Timer -->
+            <div id="loading-timer-box" style="background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.3); padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; color: var(--accent-cyan); font-weight: 700; font-size: 14px;">
+                <i class="fa-solid fa-stopwatch" style="margin-right: 6px;"></i> រយៈពេល: <span id="timer-counter">00:00</span>
             </div>
 
             <!-- Cancel Button -->
-            <button id="cancel-transfer-btn" class="btn btn-rose" style="width: 100%; margin-top: 4px; font-weight: 700;">
-                <i class="fa-solid fa-xmark"></i> បោះបង់ការផ្ទេរ (Cancel Transfer)
+            <button id="cancel-transfer-btn" class="btn btn-rose" style="width: 100%; font-weight: 700;">
+                <i class="fa-solid fa-xmark"></i> បោះបង់ (Cancel Transfer)
             </button>
         </div>
     </div>
 
-    <!-- DRIVE DETAILS MODAL -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- DRIVE DETAILS MODAL                                                   -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
     <div id="drive-details-modal" class="modal-overlay hidden">
         <div class="modal-card" style="max-width: 680px; width: 90%; text-align: left;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 44px; height: 44px; background: rgba(6, 182, 212, 0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--accent-cyan);">
+                    <div style="width: 44px; height: 44px; background: rgba(6,182,212,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--accent-cyan);">
                         <i class="fa-solid fa-hard-drive"></i>
                     </div>
                     <div>
@@ -668,17 +671,17 @@
             </div>
 
             <!-- Stats Bar -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px;">
                 <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
-                    <span style="font-size: 12px; color: var(--text-muted);">ទំហំសរុប (Total):</span>
+                    <span style="font-size: 12px; color: var(--text-muted);">Total:</span>
                     <h4 id="detail-total-size" style="font-size: 16px; color: var(--text-main); margin-top: 2px;">0.0 GB</h4>
                 </div>
                 <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
-                    <span style="font-size: 12px; color: var(--text-muted);">ទំហំបានប្រើ (Used):</span>
+                    <span style="font-size: 12px; color: var(--text-muted);">Used:</span>
                     <h4 id="detail-used-size" style="font-size: 16px; color: var(--accent-amber); margin-top: 2px;">0.0 GB</h4>
                 </div>
                 <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
-                    <span style="font-size: 12px; color: var(--text-muted);">ទំហំនៅទំនេរ (Free):</span>
+                    <span style="font-size: 12px; color: var(--text-muted);">Free:</span>
                     <h4 id="detail-free-size" style="font-size: 16px; color: var(--accent-emerald); margin-top: 2px;">0.0 GB</h4>
                 </div>
             </div>
@@ -696,15 +699,15 @@
 
             <!-- Top Folders Breakdown -->
             <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--accent-cyan); display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-folder-tree"></i> បញ្ជី Folders ធំៗក្នុង Drive នេះ (Top Folders & Files)
+                <i class="fa-solid fa-folder-tree"></i> Top Folders &amp; Files
             </h4>
             <div id="drive-details-folders-list" style="max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
-                <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយកព័ត៌មាន Folders...</div>
+                <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយក...</div>
             </div>
 
             <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
-                <button id="btn-detail-set-source" class="btn btn-cyan"><i class="fa-solid fa-arrow-up-from-bracket"></i> ជ្រើសរើសដើម្បីផ្ទេរចេញ (Set Source)</button>
-                <button id="btn-detail-set-target" class="btn btn-emerald"><i class="fa-solid fa-arrow-down-to-bracket"></i> ជ្រើសរើសជា Target (Set Target)</button>
+                <button id="btn-detail-set-source" class="btn btn-cyan"><i class="fa-solid fa-arrow-up-from-bracket"></i> Set Source</button>
+                <button id="btn-detail-set-target" class="btn btn-emerald"><i class="fa-solid fa-arrow-down-to-bracket"></i> Set Target</button>
             </div>
         </div>
     </div>
