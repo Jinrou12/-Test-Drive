@@ -943,21 +943,32 @@ app.post('/api/portable/extract', async (req, res) => {
             New-Item -Path $destFolder -ItemType Directory -Force | Out-Null
         }
 
-        # Try extracting with built-in tar.exe (Windows 10/11)
+        # 1. Try extracting if source is a compressed archive/SFX
         $tarPath = "C:\\Windows\\System32\\tar.exe"
-        $extracted = $false
         if (Test-Path $tarPath) {
             & $tarPath -xf "$exePath" -C "$destFolder" *>&1 | Out-Null
-            $extracted = $true
         }
 
-        if (-not $extracted) {
+        $itemsCount = @(Get-ChildItem -Path $destFolder -ErrorAction SilentlyContinue).Count
+
+        if ($itemsCount -eq 0) {
             try {
                 Expand-Archive -LiteralPath "$exePath" -DestinationPath "$destFolder" -Force -ErrorAction Stop
-                $extracted = $true
-            } catch {
-                # Fallback: copy executable directly if uncompressed
-                Copy-Item -Path "$exePath" -Destination "$destFolder\\$appName.exe" -Force
+            } catch { }
+            $itemsCount = @(Get-ChildItem -Path $destFolder -ErrorAction SilentlyContinue).Count
+        }
+
+        # 2. Fallback: If 0 files extracted (e.g. source is an installed app .exe or standalone executable)
+        if ($itemsCount -eq 0) {
+            $parentDir = Split-Path -Path "$exePath" -Parent
+            $parentItemCount = @(Get-ChildItem -Path "$parentDir" -ErrorAction SilentlyContinue).Count
+
+            # If exe is inside an application directory (Program Files, etc.), robocopy entire app folder
+            if ($parentItemCount -gt 1 -and $parentDir -notmatch '(?i)Downloads|Desktop|Temp') {
+                & robocopy "$parentDir" "$destFolder" /E /BYTES /R:1 /W:1 | Out-Null
+            } else {
+                # Copy standalone executable
+                Copy-Item -Path "$exePath" -Destination "$destFolder\\$appName.exe" -Force -ErrorAction SilentlyContinue
             }
         }
 
