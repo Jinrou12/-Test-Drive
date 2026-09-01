@@ -13,14 +13,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── Helper: run PowerShell command ───────────────────────────────────────
 function runPowerShell(cmd) {
     return new Promise((resolve) => {
-        // Escape double-quotes for cmd.exe shell wrapping
-        const escaped = cmd.replace(/"/g, '\\"');
-        const psCommand = `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "${escaped}"`;
-        exec(psCommand, { maxBuffer: 1024 * 1024 * 20, timeout: 30000 }, (error, stdout, stderr) => {
+        // Base64 encode UTF-16LE buffer for 100% reliable execution without quote escaping bugs
+        const encodedCmd = Buffer.from(cmd, 'utf16le').toString('base64');
+        const psCommand = `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand ${encodedCmd}`;
+        exec(psCommand, { maxBuffer: 1024 * 1024 * 20, timeout: 35000 }, (error, stdout, stderr) => {
             if (error) {
                 resolve({ success: false, error: error.message, stdout: stdout?.trim() || '', stderr: stderr?.trim() || '' });
             } else {
-                resolve({ success: true, stdout: stdout.trim(), stderr: stderr.trim() });
+                resolve({ success: true, stdout: stdout?.trim() || '', stderr: stderr?.trim() || '' });
             }
         });
     });
@@ -788,7 +788,7 @@ app.post('/api/boost-adobe-ai', async (req, res) => {
                         $clearedCacheMB += [Math]::Round(($i.Length / 1MB), 1)
                     }
                     Remove-Item -Path "$dir\\*" -Recurse -Force -ErrorAction SilentlyContinue
-                } catch (_) {}
+                } catch { }
             }
         }
 
@@ -799,7 +799,7 @@ app.post('/api/boost-adobe-ai', async (req, res) => {
             try {
                 $p.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::High
                 $boostedApps += $p.ProcessName
-            } catch (_) {}
+            } catch { }
         }
 
         # Register UserGpuPreferences (GpuPreference=2 => High Performance Discrete GPU)
@@ -1023,7 +1023,9 @@ app.post('/api/portable/launch', (req, res) => {
     if (!exePath || !fs.existsSync(exePath)) {
         return res.status(400).json({ error: 'Executable not found' });
     }
-    exec(`"${exePath}"`, { cwd: path.dirname(exePath) });
+    const { spawn } = require('child_process');
+    const child = spawn(exePath, [], { cwd: path.dirname(exePath), detached: true, stdio: 'ignore' });
+    child.unref();
     res.json({ success: true });
 });
 
@@ -1138,7 +1140,7 @@ app.post('/api/shell-folders/relocate', async (req, res) => {
                         Move-Item -Path $_.FullName -Destination $dest -Force -ErrorAction SilentlyContinue
                         $movedFiles++
                     }
-                } catch (_) {}
+                } catch { }
             }
 
             $relocationResults += [PSCustomObject]@{
@@ -1160,7 +1162,7 @@ app.post('/api/shell-folders/relocate', async (req, res) => {
 "@
             Add-Type -TypeDefinition $code -ErrorAction SilentlyContinue
             [ShellUtil]::SHChangeNotify(0x08000000, 0x0000, [IntPtr]::Zero, [IntPtr]::Zero)
-        } catch (_) {}
+        } catch { }
 
         $relocationResults | ConvertTo-Json
     `;

@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendingBatchTransfer = null; // { items: [{ sourcePath, folderName }], targetDrive }
     let pendingEndTask = null;  // { pid, name }
     let pendingEndAll = null;   // { filter, items: [{ pid, name, ramMB }] }
+    let pendingConfirmCallback = null; // Clean callback handler for showConfirmModal
     let transferTimerInterval = null;
     let transferProgressPollInterval = null;
     let currentTab = 'drives-tab';
@@ -518,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ── showConfirmModal — generic confirm helper used by Usage Analyzer ──────
+    // ── showConfirmModal — generic confirm helper ──────────────────────────────
     function showConfirmModal(title, desc, onConfirm) {
         modalTitle.textContent = title;
         modalDesc.innerHTML = desc;
@@ -528,14 +529,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pendingEndTask = null;
         pendingEndAll = null;
         pendingBatchTransfer = null;
+        pendingConfirmCallback = onConfirm;
 
-        // Store callback in a one-time listener
-        const handler = () => {
-            confirmModalOverlay.classList.add('hidden');
-            modalConfirmBtn.removeEventListener('click', handler);
-            onConfirm();
-        };
-        modalConfirmBtn.addEventListener('click', handler);
         confirmModalOverlay.classList.remove('hidden');
     }
 
@@ -1060,9 +1055,19 @@ document.addEventListener('DOMContentLoaded', () => {
         pendingTransfer = null;
         pendingEndTask = null;
         pendingEndAll = null;
+        pendingConfirmCallback = null;
     });
 
     modalConfirmBtn.addEventListener('click', async () => {
+        // Handle generic showConfirmModal callback
+        if (pendingConfirmCallback) {
+            const cb = pendingConfirmCallback;
+            pendingConfirmCallback = null;
+            confirmModalOverlay.classList.add('hidden');
+            cb();
+            return;
+        }
+
         // Handle SHELL FOLDERS RELOCATION confirmation
         if (pendingTransfer && pendingTransfer.isShellRelocate) {
             const { targetDrive, moveFiles } = pendingTransfer;
