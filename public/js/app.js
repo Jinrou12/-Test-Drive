@@ -2114,6 +2114,136 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function getAppMetaInfo(appName, publisher = '') {
+        const lower = (appName + ' ' + publisher).toLowerCase();
+
+        if (lower.includes('lightroom')) {
+            return {
+                iconClass: 'fa-solid fa-camera-retro',
+                style: 'background: linear-gradient(135deg, #001E36, #31A8FF); color: #31A8FF; box-shadow: 0 4px 12px rgba(49,168,255,0.35);',
+                roleLabel: '📸 កម្មវិធីកាត់តរូបថត Professional & RAW Processor'
+            };
+        }
+        if (lower.includes('photoshop')) {
+            return {
+                iconClass: 'fa-solid fa-palette',
+                style: 'background: linear-gradient(135deg, #001E36, #31A8FF); color: #31A8FF; box-shadow: 0 4px 12px rgba(49,168,255,0.35);',
+                roleLabel: '🎨 កម្មវិធី Graphic Design & Photo Editing'
+            };
+        }
+        if (lower.includes('premiere')) {
+            return {
+                iconClass: 'fa-solid fa-film',
+                style: 'background: linear-gradient(135deg, #00005B, #9999FF); color: #9999FF; box-shadow: 0 4px 12px rgba(153,153,255,0.35);',
+                roleLabel: '🎬 កម្មវិធីកាត់តវីដេអូ Professional Video Editor'
+            };
+        }
+        if (lower.includes('filmora')) {
+            return {
+                iconClass: 'fa-solid fa-clapperboard',
+                style: 'background: linear-gradient(135deg, #004d40, #06b6d4); color: #06b6d4; box-shadow: 0 4px 12px rgba(6,182,212,0.35);',
+                roleLabel: '🎬 កម្មវិធីកាត់តវីដេអូ Wondershare Filmora Video Editor'
+            };
+        }
+        if (lower.includes('brave')) {
+            return {
+                iconClass: 'fa-solid fa-shield-cat',
+                style: 'background: linear-gradient(135deg, #7c2d12, #ff5500); color: #ff5500; box-shadow: 0 4px 12px rgba(255,85,0,0.35);',
+                roleLabel: '🌐 កម្មវិធីបើកអ៊ីនធឺណិត សុវត្ថិភាព Privacy Web Browser'
+            };
+        }
+        if (lower.includes('chrome')) {
+            return {
+                iconClass: 'fa-brands fa-chrome',
+                style: 'background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: #60a5fa; box-shadow: 0 4px 12px rgba(59,130,246,0.35);',
+                roleLabel: '🌐 កម្មវិធីបើកអ៊ីនធឺណិត Google Chrome Browser'
+            };
+        }
+        if (lower.includes('edge') || lower.includes('msedge')) {
+            return {
+                iconClass: 'fa-brands fa-edge',
+                style: 'background: linear-gradient(135deg, #0f4c81, #0078d7); color: #38bdf8; box-shadow: 0 4px 12px rgba(56,189,248,0.35);',
+                roleLabel: '🌐 កម្មវិធីបើកអ៊ីនធឺណិត Microsoft Edge Browser'
+            };
+        }
+        if (lower.includes('telegram')) {
+            return {
+                iconClass: 'fa-brands fa-telegram',
+                style: 'background: linear-gradient(135deg, #0c4a6e, #0284c7); color: #38bdf8; box-shadow: 0 4px 12px rgba(56,189,248,0.35);',
+                roleLabel: '💬 កម្មវិធីផ្ញើសារ Chat, Calls & File Sharing'
+            };
+        }
+        if (lower.includes('word') || lower.includes('winword')) {
+            return {
+                iconClass: 'fa-solid fa-file-word',
+                style: 'background: linear-gradient(135deg, #172554, #1d4ed8); color: #60a5fa; box-shadow: 0 4px 12px rgba(96,165,250,0.35);',
+                roleLabel: '📄 កម្មវិធីរៀបចំឯកសារ Microsoft Word Document'
+            };
+        }
+        if (lower.includes('excel')) {
+            return {
+                iconClass: 'fa-solid fa-file-excel',
+                style: 'background: linear-gradient(135deg, #052e16, #15803d); color: #4ade80; box-shadow: 0 4px 12px rgba(74,222,128,0.35);',
+                roleLabel: '📊 កម្មវិធីសៀវភៅបញ្ជី & គណនាទិន្នន័យ Microsoft Excel'
+            };
+        }
+        if (lower.includes('powerpoint') || lower.includes('powerpnt')) {
+            return {
+                iconClass: 'fa-solid fa-file-powerpoint',
+                style: 'background: linear-gradient(135deg, #451a03, #c2410c); color: #fb923c; box-shadow: 0 4px 12px rgba(251,146,60,0.35);',
+                roleLabel: '📽️ កម្មវិធីបង្កើត Slide បទបង្ហាញ Microsoft PowerPoint'
+            };
+        }
+        if (lower.includes('antigravity')) {
+            return {
+                iconClass: 'fa-solid fa-code',
+                style: 'background: linear-gradient(135deg, #06b6d4, #8b5cf6); color: #fff; box-shadow: 0 4px 12px rgba(139,92,246,0.4);',
+                roleLabel: '💻 កម្មវិធីសរសេរ Code & AI Coding Assistant (Antigravity IDE)'
+            };
+        }
+        if (lower.includes('vscode') || lower.includes('code')) {
+            return {
+                iconClass: 'fa-solid fa-laptop-code',
+                style: 'background: linear-gradient(135deg, #0f172a, #0284c7); color: #38bdf8;',
+                roleLabel: '💻 កម្មវិធីសរសេរ Code Visual Studio Code'
+            };
+        }
+        if (lower.includes('photos') || lower.includes('photo')) {
+            return {
+                iconClass: 'fa-solid fa-image',
+                style: 'background: linear-gradient(135deg, #0369a1, #0284c7); color: #7dd3fc;',
+                roleLabel: '🖼️ កម្មវិធីមើល & រៀបចំរូបថតដើមរបស់ Windows'
+            };
+        }
+        if (lower.includes('node')) {
+            return {
+                iconClass: 'fa-brands fa-node-js',
+                style: 'background: linear-gradient(135deg, #14532d, #16a34a); color: #86efac;',
+                roleLabel: '⚡ Runtime Engine សម្រាប់ដំណើរការ JavaScript'
+            };
+        }
+        if (lower.includes('autoclicker')) {
+            return {
+                iconClass: 'fa-solid fa-hand-pointer',
+                style: 'background: linear-gradient(135deg, #047857, #10b981); color: #6ee7b7;',
+                roleLabel: '🖱️ App ចុច Mouse ដោយស្វ័យប្រវត្តិ Auto Clicker'
+            };
+        }
+        if (lower.includes('xbox') || lower.includes('gamebar')) {
+            return {
+                iconClass: 'fa-brands fa-xbox',
+                style: 'background: linear-gradient(135deg, #14532d, #15803d); color: #4ade80;',
+                roleLabel: '🎮 កម្មវិធី Game Services & Screen Recorder របស់ Windows'
+            };
+        }
+
+        return {
+            iconClass: 'fa-solid fa-cube',
+            style: 'background: rgba(255,255,255,0.06); color: var(--text-muted);',
+            roleLabel: '📦 កម្មវិធីប្រើប្រាស់ក្នុង PC (Windows Application)'
+        };
+    }
+
     function renderAllApps() {
         if (!allAppsTbody) return;
         const query = appsSearchInput ? appsSearchInput.value.toLowerCase().trim() : '';
@@ -2177,6 +2307,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (app.usageFreq === 'occasional') freqBadgeClass = 'freq-occasional';
 
             const sizeStr = app.sizeGB > 1 ? `${app.sizeGB} GB` : (app.sizeMB > 0 ? `${app.sizeMB} MB` : 'N/A');
+            const meta = getAppMetaInfo(app.name, app.publisher);
 
             return `
                 <tr>
@@ -2184,8 +2315,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="checkbox" class="app-item-cb" data-id="${app.id}" style="width:16px; height:16px; cursor:pointer;">
                     </td>
                     <td>
-                        <strong>${app.name}</strong><br>
-                        <span class="text-sub" style="font-size:11px;">Publisher: ${app.publisher} | v${app.version}</span>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="app-logo-badge" style="${meta.style}">
+                                <i class="${meta.iconClass}"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size: 13.5px; color: #fff;">${app.name}</strong><br>
+                                <span style="font-size: 11px; color: var(--accent-cyan); font-weight: 600; display: inline-block; margin-top: 1px;">👉 ${meta.roleLabel}</span><br>
+                                <span class="text-sub" style="font-size: 10.5px;">Publisher: ${app.publisher} | v${app.version}</span>
+                            </div>
+                        </div>
                     </td>
                     <td>
                         <span class="badge-cat ${catBadgeClass}">${app.categoryLabel}</span>

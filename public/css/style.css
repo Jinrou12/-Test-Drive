@@ -759,3 +759,17 @@ body {
 .freq-occasional { background: rgba(245,158,11,0.2); color: #fde68a; border: 1px solid rgba(245,158,11,0.4); }
 .freq-never { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.3); font-weight: 700; }
 
+/* ── App Logo Icon Badges ───────────────────────────────────────────────── */
+.app-logo-badge {
+    width: 38px; height: 38px;
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: var(--transition);
+}
+.app-logo-badge:hover { transform: scale(1.08); }
+
+
