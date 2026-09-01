@@ -165,6 +165,23 @@ document.addEventListener('DOMContentLoaded', () => {
             userFoldersSourceDrive.value = 'C:';
         }
 
+        // Dynamically populate Usage Analyzer drive filters
+        const usageDriveFilterEl = document.getElementById('usage-drive-filter');
+        if (usageDriveFilterEl) {
+            usageDriveFilterEl.innerHTML = `<option value="ALL">All Drives</option>` +
+                drives.map(d => {
+                    const tag = (d.isExternal || d.driveType === 2) ? ' 🔌 External' : '';
+                    return `<option value="${d.drive}">Drive ${d.drive}${tag}</option>`;
+                }).join('');
+        }
+
+        const usageBatchTargetEl = document.getElementById('usage-batch-target');
+        if (usageBatchTargetEl) {
+            usageBatchTargetEl.innerHTML = targetOptions;
+            const defaultTarget = drives.find(d => d.isExternal) || drives.find(d => !d.drive.startsWith('C')) || drives[0];
+            if (defaultTarget) usageBatchTargetEl.value = defaultTarget.drive;
+        }
+
         renderSourceDriveCheckboxes(drives);
     }
 
@@ -182,11 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (userFoldersSourceDrive) {
-        userFoldersSourceDrive.addEventListener('change', () => {
-            loadUserFolders();
-        });
-    }
+    // userFoldersSourceDrive change — no-op (loadUserFolders removed, table element gone)
 
     // Render drive checkboxes into #source-drives-checkbox-group
     function renderSourceDriveCheckboxes(drives) {
@@ -505,7 +518,155 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ── showConfirmModal — generic confirm helper used by Usage Analyzer ──────
+    function showConfirmModal(title, desc, onConfirm) {
+        modalTitle.textContent = title;
+        modalDesc.innerHTML = desc;
+        modalConfirmBtn.className = 'btn btn-cyan';
+        modalConfirmBtn.textContent = 'យល់ព្រម (Confirm)';
+        pendingTransfer = null;
+        pendingEndTask = null;
+        pendingEndAll = null;
+        pendingBatchTransfer = null;
+
+        // Store callback in a one-time listener
+        const handler = () => {
+            confirmModalOverlay.classList.add('hidden');
+            modalConfirmBtn.removeEventListener('click', handler);
+            onConfirm();
+        };
+        modalConfirmBtn.addEventListener('click', handler);
+        confirmModalOverlay.classList.remove('hidden');
+    }
+
+    // ── executeSingleMove — move a single item from Usage Analyzer ───────────
+    async function executeSingleMove(sourcePath, itemName, targetDrive) {
+        loadingTitle.textContent = `កំពុងផ្ទេរ "${itemName}"...`;
+        loadingDesc.innerHTML = `ប្រព័ន្ធកំពុងផ្ទេរ <strong>${itemName}</strong> ទៅ <strong>${targetDrive}\\Migrated_Files\\${itemName}</strong>...`;
+
+        const percentText = document.getElementById('progress-percent-text');
+        const barFill = document.getElementById('progress-bar-fill');
+        if (percentText) percentText.textContent = '0%';
+        if (barFill) barFill.style.width = '0%';
+
+        let elapsed = 0;
+        const timerCounter = document.getElementById('timer-counter');
+        if (timerCounter) timerCounter.textContent = '00:00';
+        if (transferTimerInterval) clearInterval(transferTimerInterval);
+        transferTimerInterval = setInterval(() => {
+            elapsed++;
+            const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const s = String(elapsed % 60).padStart(2, '0');
+            if (timerCounter) timerCounter.textContent = `${m}:${s}`;
+        }, 1000);
+
+        if (transferProgressPollInterval) clearInterval(transferProgressPollInterval);
+        transferProgressPollInterval = setInterval(async () => {
+            try {
+                const r = await fetch('/api/move-progress');
+                const d = await r.json();
+                if (d && typeof d.percent === 'number') {
+                    if (percentText) percentText.textContent = `${d.percent}%`;
+                    if (barFill) barFill.style.width = `${d.percent}%`;
+                }
+            } catch (_) {}
+        }, 300);
+
+        transferLoadingOverlay.classList.remove('hidden');
+
+        try {
+            const res = await fetch('/api/move-multiple', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: [{ sourcePath, folderName: itemName }], targetDrive })
+            });
+            const result = await res.json();
+            if (percentText) percentText.textContent = '100%';
+            if (barFill) barFill.style.width = '100%';
+
+            if (result.success) {
+                showToast(`✅ ផ្ទេរ "${itemName}" ទៅ ${targetDrive} រួចរាល់!`, 'success');
+                await loadDrives();
+                loadUsageAnalysis();
+            } else {
+                showToast(`❌ មានបញ្ហា: ${result.errors?.[0] || result.error || 'Failed'}`, 'error');
+            }
+        } catch (err) {
+            showToast('❌ មានបញ្ហាក្នុងការផ្ទេរ', 'error');
+        } finally {
+            if (transferTimerInterval) { clearInterval(transferTimerInterval); transferTimerInterval = null; }
+            if (transferProgressPollInterval) { clearInterval(transferProgressPollInterval); transferProgressPollInterval = null; }
+            transferLoadingOverlay.classList.add('hidden');
+        }
+    }
+
+    // ── executeBatchMove — move multiple items from Usage Analyzer ───────────
+    async function executeBatchMove(items, targetDrive) {
+        loadingTitle.textContent = `កំពុងផ្ទេរ ${items.length} Items ទៅ ${targetDrive}...`;
+        loadingDesc.innerHTML = `ប្រព័ន្ធកំពុងផ្ទេរ <strong>${items.length} items</strong> ទៅ <strong>${targetDrive}\\Migrated_Files</strong>...`;
+
+        const percentText = document.getElementById('progress-percent-text');
+        const barFill = document.getElementById('progress-bar-fill');
+        if (percentText) percentText.textContent = '0%';
+        if (barFill) barFill.style.width = '0%';
+
+        let elapsed = 0;
+        const timerCounter = document.getElementById('timer-counter');
+        if (timerCounter) timerCounter.textContent = '00:00';
+        if (transferTimerInterval) clearInterval(transferTimerInterval);
+        transferTimerInterval = setInterval(() => {
+            elapsed++;
+            const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const s = String(elapsed % 60).padStart(2, '0');
+            if (timerCounter) timerCounter.textContent = `${m}:${s}`;
+        }, 1000);
+
+        if (transferProgressPollInterval) clearInterval(transferProgressPollInterval);
+        transferProgressPollInterval = setInterval(async () => {
+            try {
+                const r = await fetch('/api/move-progress');
+                const d = await r.json();
+                if (d && typeof d.percent === 'number') {
+                    if (percentText) percentText.textContent = `${d.percent}%`;
+                    if (barFill) barFill.style.width = `${d.percent}%`;
+                    if (d.currentItem && d.batchTotal) {
+                        loadingTitle.textContent = `ផ្ទេរ (${d.batchIndex}/${d.batchTotal}): "${d.currentItem}"`;
+                    }
+                }
+            } catch (_) {}
+        }, 300);
+
+        transferLoadingOverlay.classList.remove('hidden');
+
+        try {
+            const res = await fetch('/api/move-multiple', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items, targetDrive })
+            });
+            const result = await res.json();
+            if (percentText) percentText.textContent = '100%';
+            if (barFill) barFill.style.width = '100%';
+
+            if (result.success) {
+                showToast(`✅ ផ្ទេរ ${result.successCount}/${items.length} items ទៅ ${targetDrive} រួចរាល់!`, 'success');
+                await loadDrives();
+                loadUsageAnalysis();
+            } else {
+                showToast(`❌ មានបញ្ហា: ${result.errors?.[0] || result.error || 'Failed'}`, 'error');
+            }
+        } catch (err) {
+            showToast('❌ មានបញ្ហាក្នុងការផ្ទេរ', 'error');
+        } finally {
+            if (transferTimerInterval) { clearInterval(transferTimerInterval); transferTimerInterval = null; }
+            if (transferProgressPollInterval) { clearInterval(transferProgressPollInterval); transferProgressPollInterval = null; }
+            transferLoadingOverlay.classList.add('hidden');
+        }
+    }
+
     function renderUserFolders(folders) {
+        // Guard: userFoldersTbody removed from HTML — skip silently
+        if (!userFoldersTbody) return;
         const availableTargetDrives = drivesData.filter(d => !d.drive.startsWith('C')).map(d => d.drive);
         
         userFoldersTbody.innerHTML = folders.map(f => {
